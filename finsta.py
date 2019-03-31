@@ -108,23 +108,56 @@ def post():
     username = session['username']
     cursor = conn.cursor();
     filepath = request.form["filepath"]
-    isPrivate = request.form['isPrivate']
+    allFollowers = request.form['allFollowers']
     # for elem in request.form:
     #     print("kaka")
     # isPrivate = int(isPrivate)
     # if isPrivate == 0:
     #     print("is equal to 0")
-    print(type(isPrivate))
+    # print(type(allFollowers))
     caption = request.form["caption"]
     timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
     query = 'INSERT INTO photo VALUES(Null, %s, %s, %s, %s, %s)'
-    cursor.execute(query, (username, timestamp, filepath, caption, int(isPrivate)))
+    cursor.execute(query, (username, timestamp, filepath, caption, int(allFollowers)))
+    conn.commit()
+
+    if allFollowers == "0":
+        query = 'SELECT DISTINCT photoID FROM Photo AS p WHERE p.allFollowers = %s AND p.photoID NOT IN (SELECT photoID from Photo NATURAL JOIN Share WHERE Photo.allFollowers = %s);'
+        cursor.execute(query, (0, 0))
+        data = cursor.fetchall()
+        print(data)
+        photoId = data[0]["photoID"]
+        # print(photoId)
+        conn.commit()
+        query = 'SELECT groupName FROM CloseFriendGroup WHERE groupOwner = %s'
+        cursor.execute(query, (username))
+        data = cursor.fetchall()
+        print(data)
+        print(data[0]["groupName"])
+        print("abc")
+        conn.commit()
+        cursor.close()
+        return render_template("sharewith.html", closeFriendsGroup = data, photoId = photoId)
+    cursor.close()
+    return redirect(url_for('home'))
+
+
+@app.route("/share", methods = ["GET", "POST"])
+def share():
+    user_name = session["username"]
+    photoId = request.form["photoId"]
+    groupName = request.form["groupName"]
+    print(photoId)
+    print(groupName)
+    print(user_name)
+    query = 'INSERT INTO Share VALUES (%s, %s, %s) '
+    cursor = conn.cursor();
+    cursor.execute(query, (groupName, user_name, photoId))
     conn.commit()
     cursor.close()
-    # print(isPrivate)
-
     return redirect(url_for('home'))
-#
+
+
 # @app.route('/select_blogger')
 # def select_blogger():
 #     #check that user is logged in
