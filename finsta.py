@@ -109,12 +109,16 @@ def post():
     cursor = conn.cursor();
     filepath = request.form["filepath"]
     isPrivate = request.form['isPrivate']
-    isPrivate = int(isPrivate)
+    # for elem in request.form:
+    #     print("kaka")
+    # isPrivate = int(isPrivate)
+    # if isPrivate == 0:
+    #     print("is equal to 0")
     print(type(isPrivate))
     caption = request.form["caption"]
     timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
-    query = 'INSERT INTO photo VALUES(Null, %s, %s, %s, %s, %d)'
-    cursor.execute(query, (1, 1, 1, 1, 1, 1))
+    query = 'INSERT INTO photo VALUES(Null, %s, %s, %s, %s, %s)'
+    cursor.execute(query, (username, timestamp, filepath, caption, int(isPrivate)))
     conn.commit()
     cursor.close()
     # print(isPrivate)
