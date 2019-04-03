@@ -1,0 +1,46 @@
+<html>
+<head>
+</head>
+<body>
+
+<style type="text/css">
+	table, th, td{
+		border: 1px solid black;
+	}
+</style>
+
+Here are photos you can view, {{user_name}}:
+
+<table>
+	<th>PhotoId</th>
+	<th>Owner</th>
+	<th>Caption</th>
+	<th>Link</th>
+	<th>TimePost</th>
+	<th>FirstNameTagged</th>
+	<th>LastNameTagged</th>
+
+{% for line in photos %}
+	<tr>
+		<td>{{line.photoId}}</td>
+		<td>{{line.photoOwner}}</td>
+		<td>{{line.caption}}</td>
+		<td>{{line.filepath}}</td>
+		<td>{{line.timestamp}}</td>
+		<td>{{line.fname}}</td>
+		<td>{{line.lname}}</td>
+	</tr>
+{% endfor %}
+
+</table>
+
+<br>
+<br>
+<a href="/home">Go back to home page</a>
+<br>
+<a href="/logout">Logout</a>
+
+</body>
+
+
+</html>

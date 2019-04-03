@@ -2,6 +2,9 @@
 <head>
 </head>
 <body>
+{% if error %}
+    <p class="error"><strong>Error:</strong> {{error}}</p>
+{% endif %}
 <form action="/post" method="POST">
 	<h1>Welcome {{username}}</h1>
 	<input type="text" name = "filepath" placeholder="photo file path" required/> enter the path of the photo</br>
@@ -17,6 +20,8 @@ Do you want your photo to be shared with all followers?
 
 	<input type="submit" value = Post />
 </form>
+
+<a href="/show_photos">View photos</a>
 
 <style type="text/css">
 	table, th, td{
