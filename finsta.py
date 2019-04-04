@@ -95,12 +95,19 @@ def registerAuth():
 @app.route('/home')
 def home():
     user = session['username']
-    # cursor = conn.cursor();
-    # query = 'SELECT ts, blog_post FROM blog WHERE username = %s ORDER BY ts DESC'
-    # cursor.execute(query, (user))
-    # data = cursor.fetchall()
-    # cursor.close()
-    return render_template('home.html', username=user)
+    cursor = conn.cursor();
+    query1 = "SELECT DISTINCT followerUsername,acceptedfollow FROM Follow WHERE followeeUsername = %s"
+    cursor.execute(query1, (user))
+    data = cursor.fetchall()
+    #print(data)
+    #data = cursor.fetchall()
+    #cursor = conn.cursor();
+    #query = 'SELECT ts, blog_post FROM blog WHERE username = %s ORDER BY ts DESC'
+    #cursor.execute(query, (user))
+    #data = cursor.fetchall()
+    cursor.close()
+    return render_template('home.html',username = user,requests = data)
+
 
 
 @app.route('/post', methods=['GET', 'POST'])
@@ -113,13 +120,13 @@ def post():
     timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
     error = None
 
-
+    #if the photo is set to be private
+    # Ask users to share
     if allFollowers == "0":
         query = 'SELECT groupName FROM CloseFriendGroup WHERE groupOwner = %s'
         cursor.execute(query, (username))
         conn.commit()
         data = cursor.fetchall()
-        print(data)
         # print(data[0]["groupName"])
 
         if data: #check if the user has at least one closefriend group so he can insert private photo
@@ -142,6 +149,9 @@ def post():
             cursor.close()
             return render_template("sharewith.html", closeFriendsGroup = data, photoId = photoId)
         else:
+            #if the user does not have any closefriend group
+            #bring him to the post page
+            #need at least one closefriend group
             # returns an error message to the html page
             session["username"] = username
             print("you get into the else no data condition")
@@ -157,9 +167,11 @@ def share():
     user_name = session["username"]
     photoId = request.form["photoId"]
     groupName = request.form["groupName"]
-    print(photoId)
-    print(groupName)
-    print(user_name)
+    # print(photoId)
+    # print(groupName)
+    # print(user_name)
+
+    #Insert into database
     query = 'INSERT INTO Share VALUES (%s, %s, %s) '
     cursor = conn.cursor();
     cursor.execute(query, (groupName, user_name, photoId))
@@ -205,6 +217,69 @@ def show_photos():
                     data1[i]["lname"] += ", " + data2[j]["lname"]
      cursor.close()
      return render_template('show_photos.html', user_name=user_name, photos=data1)
+
+
+@app.route('/manage_follows', methods=['GET', 'POST'])
+def manage_follows():
+    followername = session['username']
+    followeename = request.form['followeename']
+    cursor = conn.cursor();
+    query = 'SELECT DISTINCT username FROM Person WHERE username = %s'
+    cursor.execute(query, (followeename))
+    data = cursor.fetchone()
+    conn.commit()
+    error = None
+    if (data and followername != followeename):
+        newQuery = "INSERT INTO Follow(followerUsername, followeeUsername, acceptedfollow) VALUES(%s,%s,%s)"
+        cursor.execute(newQuery, (followername, followeename, 0))
+        conn.commit()
+        cursor.close()
+        return redirect(url_for('home'))
+    else:
+        error = "invalid user to follow"
+        return render_template('home.html', error=error)
+
+
+@app.route('/manage_been_followed', methods=['GET', 'POST'])
+def manage_been_followed():
+    followeename = session['username']
+    cursor = conn.cursor();
+    query = "SELECT followerUsername FROM Follow WHERE followeeUsername = %s"
+    cursor.execute(query, (followeename))
+    followerlist = cursor.fetchall()
+    conn.commit()
+    print(cursor.execute(query, (followeename)))
+
+    print(followerlist)
+    for person in followerlist:
+        print(person)
+        print(person['followerUsername'])
+        curr_name = person['followerUsername']
+        try:
+            answer = request.form[curr_name]
+            print("answer:", answer)
+            print(type(answer))
+            if (int(answer) == 0):
+                print("here is 0")
+                query2 = "DELETE FROM Follow WHERE Follow.followerUsername = %s AND Follow.followeeUsername = %s"
+                cursor.execute(query2, (curr_name, followeename))
+                conn.commit()
+                print("finished deleting")
+            # query2 = "DELETE FROM Follow WHERE Follow.followeeUsername = %s"
+            # cursor.execute(query2, (person))
+            else:
+                print("here is 1")
+                query3 = 'UPDATE Follow SET acceptedfollow = %s WHERE Follow.followerUsername = %s AND Follow.followeeUsername = %s'
+                cursor.execute(query3, (1, curr_name, followeename))
+                conn.commit()
+                print("finished updating")
+                # query3 = 'UPDATE Follow SET acceptedfollow = %s WHERE Follow.followeeUsername = %s'
+                # cursor.execute(query3,(int(answer), person))
+        except:
+            return redirect(url_for('home'))
+    cursor.close()
+    return redirect(url_for('home'))
+
 
 @app.route('/logout')
 def logout():

@@ -29,25 +29,53 @@ Do you want your photo to be shared with all followers?
 	}
 </style>
 
-<!-- Here are your posts:
 
-<table>
-	<th>Time</th>
-	<th>Post</th>
+<form action="/manage_follows" method="POST">
 
-{% for line in posts %}
-	<tr>
-		<td>{{line.ts}}</td>
-		<td>{{line.blog_post}}</td>
-	</tr>
-{% endfor %}
-</table>
+	<input type='text' name = "followeename" placeholder="enter the username" required/> enter the username that you want to follow
 
-<a href="/select_blogger">Select a blogger</a>
-<br>
-<a href="/logout">Logout</a>
+	<input type='submit' value= Submit />
 
-</body>
+</form>
 
 
-</html> -->
+
+<form action="/manage_been_followed" method='POST'>
+
+	Here are your follow requests:
+
+	<table>
+
+		<th>FollowerName</th>
+
+		<th>curren status</th>
+
+		<th>Accept or not</th>
+
+	{% for line in requests %}
+
+		<tr>
+
+			<td>{{line.followerUsername}}</td>
+
+			<td>{{line.acceptedfollow}}</td>
+
+			<td>
+
+				<input type="radio" name={{line.followerUsername}} value=0> Decline <br>
+
+				<input type="radio" name={{line.followerUsername}} value=1> Accept <br>
+
+			</td>
+
+		</tr>
+
+	{% endfor %}
+
+	</table>
+
+	<input type="submit" value = Submit>
+
+</form>
+
+
