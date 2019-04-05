@@ -96,15 +96,9 @@ def registerAuth():
 def home():
     user = session['username']
     cursor = conn.cursor();
-    query1 = "SELECT DISTINCT followerUsername,acceptedfollow FROM Follow WHERE followeeUsername = %s"
+    query1 = "SELECT DISTINCT followerUsername,acceptedfollow FROM Follow WHERE followeeUsername = %s AND acceptedfollow = 0"
     cursor.execute(query1, (user))
     data = cursor.fetchall()
-    #print(data)
-    #data = cursor.fetchall()
-    #cursor = conn.cursor();
-    #query = 'SELECT ts, blog_post FROM blog WHERE username = %s ORDER BY ts DESC'
-    #cursor.execute(query, (user))
-    #data = cursor.fetchall()
     cursor.close()
     return render_template('home.html',username = user,requests = data)
 
@@ -167,9 +161,7 @@ def share():
     user_name = session["username"]
     photoId = request.form["photoId"]
     groupName = request.form["groupName"]
-    # print(photoId)
-    # print(groupName)
-    # print(user_name)
+
 
     #Insert into database
     query = 'INSERT INTO Share VALUES (%s, %s, %s) '
@@ -180,18 +172,6 @@ def share():
     return redirect(url_for('home'))
 
 
-# @app.route('/select_blogger')
-# def select_blogger():
-#     #check that user is logged in
-#     #username = session['username']
-#     #should throw exception if username not found
-#
-#     cursor = conn.cursor();
-#     query = 'SELECT DISTINCT username FROM blog'
-#     cursor.execute(query)
-#     data = cursor.fetchall()
-#     cursor.close()
-#     return render_template('select_blogger.html', user_list=data)
 #
 @app.route('/show_photos', methods=["GET", "POST"])
 def show_photos():
@@ -244,37 +224,30 @@ def manage_follows():
 def manage_been_followed():
     followeename = session['username']
     cursor = conn.cursor();
-    query = "SELECT followerUsername FROM Follow WHERE followeeUsername = %s"
+    query = "SELECT followerUsername FROM Follow WHERE followeeUsername = %s AND acceptedfollow = 0"
     cursor.execute(query, (followeename))
     followerlist = cursor.fetchall()
     conn.commit()
-    print(cursor.execute(query, (followeename)))
 
-    print(followerlist)
     for person in followerlist:
-        print(person)
-        print(person['followerUsername'])
+
         curr_name = person['followerUsername']
         try:
             answer = request.form[curr_name]
-            print("answer:", answer)
-            print(type(answer))
             if (int(answer) == 0):
-                print("here is 0")
+
                 query2 = "DELETE FROM Follow WHERE Follow.followerUsername = %s AND Follow.followeeUsername = %s"
                 cursor.execute(query2, (curr_name, followeename))
                 conn.commit()
-                print("finished deleting")
-            # query2 = "DELETE FROM Follow WHERE Follow.followeeUsername = %s"
-            # cursor.execute(query2, (person))
+
             else:
-                print("here is 1")
+
                 query3 = 'UPDATE Follow SET acceptedfollow = %s WHERE Follow.followerUsername = %s AND Follow.followeeUsername = %s'
                 cursor.execute(query3, (1, curr_name, followeename))
                 conn.commit()
-                print("finished updating")
-                # query3 = 'UPDATE Follow SET acceptedfollow = %s WHERE Follow.followeeUsername = %s'
-                # cursor.execute(query3,(int(answer), person))
+
+                return redirect(url_for('home'))
+
         except:
             return redirect(url_for('home'))
     cursor.close()
