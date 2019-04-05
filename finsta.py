@@ -303,16 +303,16 @@ def upload_image():
                 print("enter data_group")
                 image_name = image_file.filename
                 filepath = os.path.join(IMAGES_DIR, image_name)
-                print(1)
+
                 image_file.save(filepath)
-                print(2)
+
                 cursor = conn.cursor();
                 query = "INSERT INTO photo VALUES(Null, %s, %s, %s, %s, %s)"
-                print(3)
+
                 cursor.execute(query, (username, time.strftime('%Y-%m-%d %H:%M:%S'), image_name, caption, int(allFollowers)))
 
                 conn.commit()
-                print(4)
+
                 # select the photo id just inserted into DB which is not shared
                 query = 'SELECT DISTINCT photoID FROM Photo AS p WHERE p.allFollowers = %s AND p.photoID NOT IN (SELECT photoID from Photo NATURAL JOIN Share WHERE Photo.allFollowers = %s);'
                 cursor.execute(query, (0, 0))
@@ -338,8 +338,20 @@ def upload_image():
                 error = 'should have at least one close friends to post a private photo'
                 # return redirect(url_for('home',error = error))
                 return render_template("home.html", username=username, error=error)
+        else:
+            image_name = image_file.filename
+            filepath = os.path.join(IMAGES_DIR, image_name)
 
+            image_file.save(filepath)
 
+            cursor = conn.cursor();
+            query = "INSERT INTO photo VALUES(Null, %s, %s, %s, %s, %s)"
+
+            cursor.execute(query, (username, time.strftime('%Y-%m-%d %H:%M:%S'), image_name, caption, int(allFollowers)))
+            conn.commit()
+            cursor.close()
+
+    return redirect(url_for('home'))
     #
     #
     #
