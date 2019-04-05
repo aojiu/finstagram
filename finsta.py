@@ -135,7 +135,7 @@ def post():
             data = cursor.fetchall()
 
             photoId = data[0]["photoID"]
-            print("Realllllllllllllll")
+
             print(photoId)
             conn.commit()
 
@@ -161,20 +161,26 @@ def post():
     return redirect(url_for('home'))
 
 
+
 @app.route("/share", methods = ["GET", "POST"])
 def share():
     user_name = session["username"]
     photoId = request.form["photoId"]
     groupName = request.form.getlist("groupName")
     print(photoId)
+    if groupName:
     #Insert into database
-    for elem in groupName:
-        query = 'INSERT INTO Share VALUES (%s, %s, %s) '
-        cursor = conn.cursor();
-        cursor.execute(query, (elem, user_name, photoId))
-        conn.commit()
-    cursor.close()
-    return redirect(url_for('home'))
+        for elem in groupName:
+            query = 'INSERT INTO Share VALUES (%s, %s, %s) '
+            cursor = conn.cursor();
+            cursor.execute(query, (elem, user_name, photoId))
+            conn.commit()
+        cursor.close()
+        return redirect(url_for('home'))
+    else:
+        username = session["username"]
+        error = "You did not select any of the closefriendgroup!!!!!!!!!!!!!"
+        return render_template("home.html", username=username, error=error)
 
 
 #
@@ -322,6 +328,16 @@ def upload_image():
 
                 cursor.close()
                 return render_template("sharewith.html", closeFriendsGroup=data_group, photoId=photoId)
+
+            else:
+                # if the user does not have any closefriend group
+                # bring him to the post page
+                # need at least one closefriend group
+                # returns an error message to the html page
+                session["username"] = username
+                error = 'should have at least one close friends to post a private photo'
+                # return redirect(url_for('home',error = error))
+                return render_template("home.html", username=username, error=error)
 
 
     #

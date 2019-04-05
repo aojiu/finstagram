@@ -4,12 +4,36 @@
     </head>
     <body>
         <h1>Image Gallery</h1>
-        <div>
-            {% for image in images %}
 
-            <img src="/image/{{image.filePath}}" width="300"/>
-            {% endfor %}
-        </div>
-        <a href="/">Go back</a>
-    </body>
-</html>
+
+
+        Here are posts by {{poster_name}}:
+
+
+<table width="200" border="1" class="table">
+	<th>caption</th>
+    <th>timestamp</th>
+	<th>image</th>
+
+
+
+{% for image in images %}
+
+	<tr>
+
+		<td>{{image.caption}}</td>
+        <td>{{image.timestamp}}</td>
+		<td><img src="/image/{{image.filePath}}" width="300"/></td>
+
+	</tr>
+
+{% endfor %}
+
+</table>
+
+
+
+
+
+
+
