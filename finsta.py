@@ -1,8 +1,8 @@
 #Import Flask Library
-from flask import Flask, render_template, request, session, url_for, redirect
+from flask import Flask, render_template, request, session, url_for, redirect, send_file
 import pymysql.cursors
 import time
-
+import os
 
 
 
@@ -10,6 +10,8 @@ import time
 
 #Initialize the app from Flask
 app = Flask(__name__)
+IMAGES_DIR = os.path.join(os.getcwd(), "images")
+print(IMAGES_DIR)
 
 #Configure MySQL
 conn = pymysql.connect(host='localhost',
@@ -133,7 +135,8 @@ def post():
             data = cursor.fetchall()
 
             photoId = data[0]["photoID"]
-
+            print("Realllllllllllllll")
+            print(photoId)
             conn.commit()
 
             # task xiewy: need to add error here no closefriendgroup
@@ -163,7 +166,7 @@ def share():
     user_name = session["username"]
     photoId = request.form["photoId"]
     groupName = request.form.getlist("groupName")
-
+    print(photoId)
     #Insert into database
     for elem in groupName:
         query = 'INSERT INTO Share VALUES (%s, %s, %s) '
@@ -178,27 +181,17 @@ def share():
 @app.route('/show_photos', methods=["GET", "POST"])
 def show_photos():
      user_name = session["username"]
+
+     query = "SELECT * FROM photo"
      cursor = conn.cursor()
-     query1 = "SELECT photoId, photoOwner, caption, filepath, timestamp FROM photo JOIN person ON photo.photoOwner = person.username WHERE isPrivate = 0 OR username = %s OR username IN (SELECT followeeUsername FROM follow WHERE followerUsername = %s and acceptedfollow = 1) AND allFollowers = 1 ORDER BY `photo`.`timestamp` DESC"
-     cursor.execute(query1, (user_name, user_name))
-     data1 = cursor.fetchall()
-     for i in range(len(data1)):
-         data1[i]["fname"] = ""
-         data1[i]["lname"] = ""
-     query2 = "SELECT photoId, fname, lname FROM person JOIN (SELECT username, photoId, photoOwner, caption, filepath, timestamp FROM photo NATURAL JOIN tag WHERE acceptedTag = 1) t2 ON person.username = t2.username"
-     cursor.execute(query2)
-     data2 = cursor.fetchall()
-     for i in range(len(data1)):
-         for j in range(len(data2)):
-             if data1[i]["photoId"] == data2[j]["photoId"]:
-                 if data1[i]["fname"] == "":
-                     data1[i]["fname"] = data2[j]["fname"]
-                     data1[i]["lname"] = data2[j]["lname"]
-                 else:
-                    data1[i]["fname"] += ", " + data2[j]["fname"]
-                    data1[i]["lname"] += ", " + data2[j]["lname"]
+     cursor.execute(query)
+     data = cursor.fetchall()
+     conn.commit()
      cursor.close()
-     return render_template('show_photos.html', user_name=user_name, photos=data1)
+     return render_template("show_photos.html", images=data)
+
+
+
 
 
 @app.route('/manage_follows', methods=['GET', 'POST'])
@@ -256,6 +249,99 @@ def manage_been_followed():
     return redirect(url_for('home'))
 
 
+@app.route("/images", methods=["GET"])
+
+def images():
+    query = "SELECT * FROM photo"
+    cursor = conn.cursor();
+    cursor.execute(query)
+    data = cursor.fetchall()
+    return render_template("images.html", images=data)
+
+@app.route("/image/<image_name>", methods=["GET"])
+def image(image_name):
+    image_location = os.path.join(IMAGES_DIR, image_name)
+    if os.path.isfile(image_location):
+        return send_file(image_location, mimetype="image/jpg")
+
+
+
+
+@app.route("/upload", methods=["GET"])
+
+def upload():
+    return render_template("upload.html")
+
+
+@app.route("/uploadImage", methods=["POST"])
+def upload_image():
+    if request.files:
+        image_file = request.files.get("imageToUpload", "")
+        caption = request.form["caption"]
+        username = session["username"]
+        allFollowers = request.form["allFollowers"]
+        cursor = conn.cursor();
+        print(username)
+        print("caption")
+        print(caption)
+        print(allFollowers)
+
+        if allFollowers == "0":
+            query = 'SELECT groupName FROM CloseFriendGroup WHERE groupOwner = %s'
+            cursor.execute(query, (username))
+            conn.commit()
+            data_group = cursor.fetchall()
+
+            if data_group:  # check if the user has at least one closefriend group so he can insert private photo
+                # insert the photo
+                print("enter data_group")
+                image_name = image_file.filename
+                filepath = os.path.join(IMAGES_DIR, image_name)
+                print(1)
+                image_file.save(filepath)
+                print(2)
+                cursor = conn.cursor();
+                query = "INSERT INTO photo VALUES(Null, %s, %s, %s, %s, %s)"
+                print(3)
+                cursor.execute(query, (username, time.strftime('%Y-%m-%d %H:%M:%S'), image_name, caption, int(allFollowers)))
+
+                conn.commit()
+                print(4)
+                # select the photo id just inserted into DB which is not shared
+                query = 'SELECT DISTINCT photoID FROM Photo AS p WHERE p.allFollowers = %s AND p.photoID NOT IN (SELECT photoID from Photo NATURAL JOIN Share WHERE Photo.allFollowers = %s);'
+                cursor.execute(query, (0, 0))
+                data = cursor.fetchall()
+
+                photoId = data[0]["photoID"]
+                print("photo id")
+                print(photoId)
+
+                conn.commit()
+
+                # task xiewy: need to add error here no closefriendgroup
+
+                cursor.close()
+                return render_template("sharewith.html", closeFriendsGroup=data_group, photoId=photoId)
+
+
+    #
+    #
+    #
+    #
+    #     image_name = image_file.filename
+    #     filepath = os.path.join(IMAGES_DIR, image_name)
+    #     image_file.save(filepath)
+    #     cursor = conn.cursor();
+    #     query = "INSERT INTO photo (timestamp, filePath, caption, username) VALUES (%s, %s, %s, %s)"
+    #     cursor.execute(query, (time.strftime('%Y-%m-%d %H:%M:%S'), image_name, caption))
+    #     conn.commit()
+    #
+    #     message = "Image has been successfully uploaded."
+    #     return render_template("upload.html", message=message)
+    # else:
+    #     message = "Failed to upload image."
+    #     return render_template("upload.html", message=message)
+
 @app.route('/logout')
 def logout():
     session.pop('username')
@@ -267,3 +353,6 @@ app.secret_key = 'some key that you will never guess'
 #for changes to go through, TURN OFF FOR PRODUCTION
 if __name__ == "__main__":
     app.run()
+
+
+
