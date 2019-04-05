@@ -120,10 +120,9 @@ def post():
         query = 'SELECT groupName FROM CloseFriendGroup WHERE groupOwner = %s'
         cursor.execute(query, (username))
         conn.commit()
-        data = cursor.fetchall()
-        # print(data[0]["groupName"])
+        data_group = cursor.fetchall()
 
-        if data: #check if the user has at least one closefriend group so he can insert private photo
+        if data_group: #check if the user has at least one closefriend group so he can insert private photo
             #insert the photo
             query = 'INSERT INTO photo VALUES(Null, %s, %s, %s, %s, %s)'  # insert the photo into DB
             cursor.execute(query, (username, timestamp, filepath, caption, int(allFollowers)))
@@ -132,27 +131,30 @@ def post():
             query = 'SELECT DISTINCT photoID FROM Photo AS p WHERE p.allFollowers = %s AND p.photoID NOT IN (SELECT photoID from Photo NATURAL JOIN Share WHERE Photo.allFollowers = %s);'
             cursor.execute(query, (0, 0))
             data = cursor.fetchall()
-            print(data)
+
             photoId = data[0]["photoID"]
-            # print(photoId)
+
             conn.commit()
 
             # task xiewy: need to add error here no closefriendgroup
-            print("abc")
+
 
             cursor.close()
-            return render_template("sharewith.html", closeFriendsGroup = data, photoId = photoId)
+            return render_template("sharewith.html", closeFriendsGroup = data_group, photoId = photoId)
         else:
             #if the user does not have any closefriend group
             #bring him to the post page
             #need at least one closefriend group
             # returns an error message to the html page
             session["username"] = username
-            print("you get into the else no data condition")
             error = 'should have at least one close friends to post a private photo'
             # return redirect(url_for('home',error = error))
             return render_template("home.html", username = username, error = error)
-    cursor.close()
+    else:
+        query = 'INSERT INTO photo VALUES(Null, %s, %s, %s, %s, %s)'  # insert the photo into DB
+        cursor.execute(query, (username, timestamp, filepath, caption, int(allFollowers)))
+        conn.commit()
+        cursor.close()
     return redirect(url_for('home'))
 
 
@@ -160,14 +162,14 @@ def post():
 def share():
     user_name = session["username"]
     photoId = request.form["photoId"]
-    groupName = request.form["groupName"]
-
+    groupName = request.form.getlist("groupName")
 
     #Insert into database
-    query = 'INSERT INTO Share VALUES (%s, %s, %s) '
-    cursor = conn.cursor();
-    cursor.execute(query, (groupName, user_name, photoId))
-    conn.commit()
+    for elem in groupName:
+        query = 'INSERT INTO Share VALUES (%s, %s, %s) '
+        cursor = conn.cursor();
+        cursor.execute(query, (elem, user_name, photoId))
+        conn.commit()
     cursor.close()
     return redirect(url_for('home'))
 

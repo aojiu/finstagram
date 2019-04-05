@@ -11,7 +11,7 @@ Which close friend group you want to share this photo with?
 
 
 {% for line in closeFriendsGroup %}
-<input type="radio" name="groupName" value={{line.groupName}}>{{line.groupName}}</input>
+<input type="checkbox" name="groupName" value={{line.groupName}}>{{line.groupName}}</input>
 
 <input type="hidden" value={{photoId}} name="photoId" />
 	<br>
