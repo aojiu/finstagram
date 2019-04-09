@@ -183,18 +183,18 @@ def share():
         return render_template("home.html", username=username, error=error)
 
 
-#
-@app.route('/show_photos', methods=["GET", "POST"])
-def show_photos():
-     user_name = session["username"]
 
-     query = "SELECT * FROM photo"
-     cursor = conn.cursor()
-     cursor.execute(query)
-     data = cursor.fetchall()
-     conn.commit()
-     cursor.close()
-     return render_template("show_photos.html", images=data)
+# @app.route('/show_photos', methods=["GET", "POST"])
+# def show_photos():
+#      user_name = session["username"]
+#
+#      query = "SELECT * FROM photo"
+#      cursor = conn.cursor()
+#      cursor.execute(query)
+#      data = cursor.fetchall()
+#      conn.commit()
+#      cursor.close()
+#      return render_template("show_photos.html", images=data)
 
 
 
@@ -259,10 +259,35 @@ def manage_been_followed():
 
 def images():
     query = "SELECT * FROM photo"
-    cursor = conn.cursor();
-    cursor.execute(query)
-    data = cursor.fetchall()
-    return render_template("images.html", images=data)
+    # cursor = conn.cursor();
+    # cursor.execute(query)
+    # data = cursor.fetchall()
+    # return render_template("images.html", images=data)
+    user_name = session["username"]
+    cursor = conn.cursor()
+    query1 = "SELECT * FROM photo JOIN person ON photo.photoOwner = person.username WHERE isPrivate = 0 OR username = %s OR username IN (SELECT followeeUsername FROM follow WHERE followerUsername = %s and acceptedfollow = 1) AND allFollowers = 1 ORDER BY `photo`.`timestamp` DESC"
+    cursor.execute(query1, (user_name, user_name))
+    data1 = cursor.fetchall()
+    # for i in range(len(data1)):
+    #     data1[i]["fname"] = ""
+    #     data1[i]["lname"] = ""
+    # query2 = "SELECT photoId, fname, lname FROM person JOIN (SELECT username, photoId, photoOwner, caption, filepath, timestamp FROM photo NATURAL JOIN tag WHERE acceptedTag = 1) t2 ON person.username = t2.username"
+    # cursor.execute(query2)
+    # data2 = cursor.fetchall()
+    # for i in range(len(data1)):
+    #     for j in range(len(data2)):
+    #         if data1[i]["photoId"] == data2[j]["photoId"]:
+    #             if data1[i]["fname"] == "":
+    #                 data1[i]["fname"] = data2[j]["fname"]
+    #                 data1[i]["lname"] = data2[j]["lname"]
+    #             else:
+    #                 data1[i]["fname"] += ", " + data2[j]["fname"]
+    #                 data1[i]["lname"] += ", " + data2[j]["lname"]
+    cursor.close()
+    return render_template("images.html", poster_name=user_name, images=data1)
+
+
+
 
 @app.route("/image/<image_name>", methods=["GET"])
 def image(image_name):
@@ -271,6 +296,63 @@ def image(image_name):
         return send_file(image_location, mimetype="image/jpg")
 
 
+#to display all the close friend group to choose
+@app.route("/closeFriendGroups", methods=["GET"])
+def closeFriendGroups():
+    username = session["username"]
+    print(username)
+    query = "SELECT groupName FROM CloseFriendGroup WHERE CloseFriendGroup.groupOwner = %s"
+    cursor = conn.cursor();
+    cursor.execute(query,(username))
+    conn.commit()
+    data = cursor.fetchall()
+    print(data)
+    cursor.close()
+    return render_template("closefriendgroups.html", poster_name=username, closefriendgroups=data)
+
+
+#show all the followers that can be added into the close friend group
+@app.route("/showfollowerstoadd", methods=["GET","POST"])
+def addfriendtogroup():
+    username = session["username"]
+    groupName = request.form["groupName"]
+    query = "SELECT followeRUsername FROM Follow WHERE followeeUsername = %s AND acceptedfollow = %s"
+    cursor = conn.cursor()
+    cursor.execute(query, (username, 1))
+    conn.commit()
+    data = cursor.fetchall()
+    print(data)
+    cursor.close()
+    return render_template("followerstoadd.html", username=username, followers = data, groupName = groupName)
+
+#add the chosen followers into the group.
+#if already in the group, return to home with error
+@app.route("/addtogroup", methods=["GET","POST"])
+def addtogroup():
+    username = session["username"]
+    groupName = request.form["groupName"]
+    followers = request.form.getlist("followers")
+    print(followers)
+    print(groupName)
+    if followers:
+        for follower in followers:
+            query_test = "SELECT username FROM Belong WHERE groupName = %s AND username = %s"
+            cursor = conn.cursor()
+            cursor.execute(query_test, (groupName, follower))
+            data = cursor.fetchall()
+            conn.commit()
+            if data:
+                session["username"] = username
+                error = "The follower you selected is already in this close friend!!!!!!"
+                return render_template('home.html', error=error)
+            else:
+                query_add = "INSERT INTO Belong VALUES (%s, %s, %s)"
+                cursor = conn.cursor()
+                cursor.execute(query_add, (groupName, username, follower))
+                conn.commit()
+                cursor.close()
+                message = "Successfullly added"
+                return render_template('home.html', message=message)
 
 
 @app.route("/upload", methods=["GET"])

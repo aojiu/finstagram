@@ -1,0 +1,31 @@
+<html>
+<head>
+</head>
+<body>
+
+Choose the friends you want to add to the close friend group
+<br>
+
+<form action="/addtogroup" method="POST">
+
+<input type="hidden" value={{ groupName }} name="groupName" />
+{% for line in followers %}
+<input type="checkbox" name="followers" value={{line.followeRUsername}}>{{line.followeRUsername}}</input>
+
+
+	<br>
+{% endfor %}
+
+<input type="submit" value="submit"> Edit
+
+</form>
+
+
+<br>
+<a href="/home">go back</a>
+<a href="/logout">Logout</a>
+
+</body>
+
+
+</html>

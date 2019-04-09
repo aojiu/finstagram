@@ -1,0 +1,33 @@
+<html>
+<head>
+</head>
+<body>
+
+
+These are your closefriend groups
+which one do you want to edit??
+<br>
+
+<form action="/showfollowerstoadd" method="POST">
+
+
+{% for line in closefriendgroups %}
+<input type="radio" name="groupName" value={{line.groupName}}>{{line.groupName}}</input>
+
+
+	<br>
+{% endfor %}
+
+<input type="submit" value="submit"> Edit
+
+</form>
+
+
+<br>
+<a href="/home">go back</a>
+<a href="/logout">Logout</a>
+
+</body>
+
+
+</html>

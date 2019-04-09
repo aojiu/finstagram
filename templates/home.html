@@ -4,6 +4,7 @@
 <body>
 <li><a href="/upload">Upload an Image</a></li>
 <li><a href="/images">View Images</a></li>
+<li><a href="/closeFriendGroups">Edit CloseFriend Groups</a></li>
 {% if error %}
     <p class="error"><strong>Error:</strong> {{error}}</p>
 {% endif %}
@@ -22,7 +23,7 @@ Do you want your photo to be shared with all followers?
 	<input type="submit" value = Post />
 </form>
 
-<a href="/show_photos">View photos</a>
+{#<a href="/show_photos">View photos</a>#}
 
 <style type="text/css">
 	table, th, td{
