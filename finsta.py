@@ -197,7 +197,49 @@ def share():
 #      return render_template("show_photos.html", images=data)
 
 
+@app.route('/displayTags', methods = ['GET','POST'])
+def display_tags():
+    username = session['username']
+    cursor = conn.cursor();
+    query = 'SELECT photoID,acceptedTag FROM Tag WHERE acceptedTag = %s AND username = %s'
+    cursor.execute(query, ('0', username))
+    data = cursor.fetchall()
+    #print(data)
+    conn.commit()
+    return render_template('view_tags.html', tags=data)
 
+@app.route('/acceptTagInfo', methods = ['GET','POST'])
+def change_tags():
+    message = 'You have successfully edited your tag requests'
+    username = session['username']
+    cursor = conn.cursor();
+    query = 'SELECT photoID FROM Tag WHERE username = %s AND acceptedTag = %s'
+    cursor.execute(query, (username, '0'))
+    photoID_list = cursor.fetchall()
+    conn.commit()
+    #print(photoID_list)
+    for ID in photoID_list:
+        curr_id = ID['photoID']
+        answer = request.form[str(curr_id)]
+        #print(type(answer))
+        if int(answer) == 2:
+            # 2 represents decline
+            query1 = "DELETE FROM Tag WHERE Tag.username = %s AND Tag.photoID = %s"
+            cursor.execute(query1, (username, curr_id))
+            conn.commit()
+        elif int(answer) == 1:
+            # 1 represents accept
+            query2 = "UPDATE Tag SET acceptedTag = %s WHERE Tag.username = %s AND Tag.photoID = %s"
+            cursor.execute(query2, (1, username, curr_id))
+            conn.commit()
+        elif int(answer) == 0:
+            # 0 represents ignore
+            query2 = "UPDATE Tag SET acceptedTag = %s WHERE Tag.username = %s AND Tag.photoID = %s"
+            cursor.execute(query2, (2, username, curr_id))
+            # change 2, represents ignored tag
+            conn.commit()
+
+    return render_template('/home.html', message = message)
 
 
 @app.route('/manage_follows', methods=['GET', 'POST'])
@@ -224,29 +266,25 @@ def manage_follows():
 @app.route('/manage_been_followed', methods=['GET', 'POST'])
 def manage_been_followed():
     followeename = session['username']
-    cursor = conn.cursor();
+    cursor = conn.cursor()
     query = "SELECT followerUsername FROM Follow WHERE followeeUsername = %s AND acceptedfollow = 0"
     cursor.execute(query, (followeename))
     followerlist = cursor.fetchall()
     conn.commit()
 
     for person in followerlist:
-
         curr_name = person['followerUsername']
         try:
             answer = request.form[curr_name]
-            if (int(answer) == 0):
-
+            if int(answer) == 0:
                 query2 = "DELETE FROM Follow WHERE Follow.followerUsername = %s AND Follow.followeeUsername = %s"
                 cursor.execute(query2, (curr_name, followeename))
                 conn.commit()
 
             else:
-
                 query3 = 'UPDATE Follow SET acceptedfollow = %s WHERE Follow.followerUsername = %s AND Follow.followeeUsername = %s'
                 cursor.execute(query3, (1, curr_name, followeename))
                 conn.commit()
-
                 return redirect(url_for('home'))
 
         except:
@@ -256,38 +294,35 @@ def manage_been_followed():
 
 
 @app.route("/images", methods=["GET"])
-
 def images():
-    query = "SELECT * FROM photo"
-    # cursor = conn.cursor();
-    # cursor.execute(query)
-    # data = cursor.fetchall()
-    # return render_template("images.html", images=data)
     user_name = session["username"]
     cursor = conn.cursor()
-    query1 = "SELECT * FROM photo JOIN person ON photo.photoOwner = person.username WHERE isPrivate = 0 OR username = %s OR username IN (SELECT followeeUsername FROM follow WHERE followerUsername = %s and acceptedfollow = 1) AND allFollowers = 1 ORDER BY `photo`.`timestamp` DESC"
-    cursor.execute(query1, (user_name, user_name))
+    query1 = "SELECT * FROM photo JOIN person ON photo.photoOwner = person.username WHERE" \
+             " isPrivate = 0 OR username = %s OR username IN (SELECT groupOwner FROM belong NATURAL JOIN" \
+             " closefriendgroup WHERE username = %s UNION SELECT followeeUsername FROM follow WHERE" \
+             " followerUsername = %s AND acceptedfollow = 1 AND allFollowers = 1) ORDER BY `photo`.`timestamp` DESC"
+    cursor.execute(query1, (user_name, user_name, user_name))
     data1 = cursor.fetchall()
-    # for i in range(len(data1)):
-    #     data1[i]["fname"] = ""
-    #     data1[i]["lname"] = ""
-    # query2 = "SELECT photoId, fname, lname FROM person JOIN (SELECT username, photoId, photoOwner, caption, filepath, timestamp FROM photo NATURAL JOIN tag WHERE acceptedTag = 1) t2 ON person.username = t2.username"
-    # cursor.execute(query2)
-    # data2 = cursor.fetchall()
-    # for i in range(len(data1)):
-    #     for j in range(len(data2)):
-    #         if data1[i]["photoId"] == data2[j]["photoId"]:
-    #             if data1[i]["fname"] == "":
-    #                 data1[i]["fname"] = data2[j]["fname"]
-    #                 data1[i]["lname"] = data2[j]["lname"]
-    #             else:
-    #                 data1[i]["fname"] += ", " + data2[j]["fname"]
-    #                 data1[i]["lname"] += ", " + data2[j]["lname"]
+    for i in range(len(data1)):
+        data1[i]["fname"] = ""
+        data1[i]["lname"] = ""
+    query2 = "SELECT photoID, fname, lname FROM person JOIN (" \
+             "SELECT username, photoID, photoOwner, caption, filepath, timestamp FROM photo NATURAL JOIN" \
+             " tag WHERE acceptedTag = 1) t2 ON person.username = t2.username"
+    cursor.execute(query2)
+    data2 = cursor.fetchall()
+    for i in range(len(data1)):
+        for j in range(len(data2)):
+            if data1[i]["photoID"] == data2[j]["photoID"]:
+                if data1[i]["fname"] == "":
+                    data1[i]["fname"] += data2[j]["fname"]
+                    data1[i]["lname"] += data2[j]["lname"]
+                    print(data1[i]["fname"], data1[i]["lname"])
+                else:
+                    data1[i]["fname"] += ", " + data2[j]["fname"]
+                    data1[i]["lname"] += ", " + data2[j]["lname"]
     cursor.close()
     return render_template("images.html", poster_name=user_name, images=data1)
-
-
-
 
 @app.route("/image/<image_name>", methods=["GET"])
 def image(image_name):
@@ -295,6 +330,192 @@ def image(image_name):
     if os.path.isfile(image_location):
         return send_file(image_location, mimetype="image/jpg")
 
+@app.route("/tagphoto", methods=["GET", "POST"])
+def tagphoto():
+    user_name = session["username"]
+    cursor = conn.cursor()
+    query = "SELECT photoID, filePath FROM photo JOIN person ON photo.photoOwner = person.username " \
+            "WHERE isPrivate = 0 OR username = %s OR username IN (SELECT groupOwner FROM belong NATURAL JOIN" \
+            " closefriendgroup WHERE username = %s UNION SELECT followeeUsername FROM follow WHERE" \
+            " followerUsername = %s AND acceptedfollow = 1 AND allFollowers = 1) ORDER BY `photo`.`timestamp` DESC"
+    cursor.execute(query, (user_name, user_name, user_name))
+    data = cursor.fetchall()
+    cursor.close()
+    return render_template("tagphoto.html", poster_name = user_name, images = data)
+
+@app.route("/taginsert", methods=["GET","POST"])
+def tagrequest():
+    user_name = session["username"]
+    photo_id = request.form["image"]
+    tag_name = request.form["name"]
+
+    # check if the input photo id and username are valid
+    photo_valid = False
+    name_valid = False
+    cursor = conn.cursor()
+    cursor.execute("SELECT photoID FROM photo")
+    photos = cursor.fetchall()
+    for i in range(len(photos)):
+        if int(photo_id) == photos[i]["photoID"]:
+            photo_valid = True
+    cursor.execute("SELECT username FROM person")
+    people = cursor.fetchall()
+    for i in range(len(people)):
+        if tag_name == people[i]["username"]:
+            name_valid = True
+
+    id_lst = []
+    # only insert if id and name are valid
+    if photo_valid and name_valid:
+        query = "SELECT username FROM tag WHERE photoID = %s"
+        cursor.execute(query, (photo_id))
+        names = cursor.fetchall()
+
+        query = "SELECT photoID FROM photo JOIN person ON photo.photoOwner = person.username WHERE" \
+                " isPrivate = 0 OR username = %s OR username IN (SELECT groupOwner FROM belong NATURAL JOIN " \
+                "closefriendgroup WHERE username = %s UNION SELECT followeeUsername FROM follow WHERE" \
+                " followerUsername = %s AND acceptedfollow = 1 AND allFollowers = 1) ORDER BY `photo`.`timestamp` DESC"
+        cursor.execute(query, (tag_name, tag_name, tag_name))
+        photo_visible = cursor.fetchall()
+        for i in range(len(photo_visible)):
+            id_lst.append(photo_visible[i]["photoID"])
+        if int(photo_id) not in id_lst:
+            cursor.close()
+            error = "the user you are tagging cannot view this photo!"
+            return render_template('home.html', error=error)
+
+        if len(names) == 0:
+            if user_name == tag_name:
+                query = "INSERT INTO tag VALUES (%s, %s, '1');"
+                cursor.execute(query, (user_name, photo_id))
+                conn.commit()
+                cursor.close()
+                message = "you have tagged " + tag_name + " on the photo"
+                return render_template('home.html', message=message)
+            else:
+                query = "INSERT INTO tag VALUES (%s, %s, '0');"
+                cursor.execute(query, (tag_name, photo_id))
+                conn.commit()
+                cursor.close()
+                message = "you have tagged " + tag_name + " on the photo"
+                return render_template('home.html', message=message)
+        else:
+            for i in range(len(names)):
+                if tag_name == names[i]:
+                    cursor.close()
+                    error = "the user you are tagging has already been tagged in this photo!"
+                    return render_template('home.html', error=error)
+                else:
+                    if user_name == tag_name:
+                        query = "INSERT INTO tag VALUES (%s, %s, '1');"
+                        cursor.execute(query, (user_name, photo_id))
+                        conn.commit()
+                        cursor.close()
+                        message = "you have tagged " + tag_name + " on the photo"
+                        return render_template('home.html', message=message)
+                    else:
+                        query = "INSERT INTO tag VALUES (%s, %s, '0');"
+                        cursor.execute(query, (tag_name, photo_id))
+                        conn.commit()
+                        cursor.close()
+                        message = "you have tagged " + tag_name + " on the photo"
+                        return render_template('home.html', message=message)
+    elif name_valid == False:
+        error = "the user you are tagging do not exist!"
+        return render_template('home.html', error=error)
+    elif photo_valid == False:
+        error = "the photo you are tagging do not exist!"
+        return render_template('home.html', error=error)
+    cursor.close()
+    return redirect(url_for('home'))
+
+@app.route("/search", methods=["GET"])
+def search():
+    return render_template("search.html")
+
+@app.route("/searchtag", methods=["GET","POST"])
+def searchtag():
+    user_name = session["username"]
+    tag_name = request.form["name"]
+
+    name_valid = False
+    cursor = conn.cursor()
+    cursor.execute("SELECT username FROM person")
+    people = cursor.fetchall()
+    for i in range(len(people)):
+        if tag_name == people[i]["username"]:
+            name_valid = True
+
+    id_lst = []
+    search_result = []
+    if name_valid:
+        query = "SELECT photoID FROM tag WHERE username = %s AND acceptedTag = 1"
+        cursor.execute(query, (tag_name))
+        photo_tagged = cursor.fetchall()
+        for i in range(len(photo_tagged)):
+                id_lst.append(photo_tagged[i]["photoID"])
+
+        query = "SELECT * FROM photo JOIN person ON photo.photoOwner = person.username WHERE" \
+                " isPrivate = 0 OR username = %s OR username IN (SELECT groupOwner FROM belong NATURAL JOIN " \
+                "closefriendgroup WHERE username = %s UNION SELECT followeeUsername FROM follow WHERE" \
+                " followerUsername = %s AND acceptedfollow = 1 AND allFollowers = 1) ORDER BY `photo`.`timestamp` DESC"
+        cursor.execute(query, (user_name, user_name, user_name))
+        photo_visible = cursor.fetchall()
+        for i in range(len(photo_visible)):
+            if photo_visible[i]["photoID"] in id_lst:
+                search_result.append(photo_visible[i])
+        cursor.close()
+        if len(search_result) != 0:
+            message = "Here are photos that have " + tag_name + " tagged on it."
+            return render_template("searchtag.html", message=message, images=search_result)
+        else:
+            message = "There is no photo you can view that have " + tag_name + " tagged on it."
+            return render_template('home.html', message=message)
+    elif name_valid == False:
+        error = "the user you are searching do not exist!"
+        return render_template('home.html', error=error)
+
+@app.route("/searchposter", methods=["GET","POST"])
+def searchposter():
+    user_name = session["username"]
+    poster_name = request.form["name"]
+
+    name_valid = False
+    cursor = conn.cursor()
+    cursor.execute("SELECT username FROM person")
+    people = cursor.fetchall()
+    for i in range(len(people)):
+        if poster_name == people[i]["username"]:
+            name_valid = True
+
+    id_lst = []
+    search_result = []
+    if name_valid:
+        query = "SELECT photoID FROM photo WHERE PhotoOwner= %s"
+        cursor.execute(query, (poster_name))
+        photo_post = cursor.fetchall()
+        for i in range(len(photo_post)):
+                id_lst.append(photo_post[i]["photoID"])
+
+        query = "SELECT * FROM photo JOIN person ON photo.photoOwner = person.username WHERE" \
+                " isPrivate = 0 OR username = %s OR username IN (SELECT groupOwner FROM belong NATURAL JOIN " \
+                "closefriendgroup WHERE username = %s UNION SELECT followeeUsername FROM follow WHERE" \
+                " followerUsername = %s AND acceptedfollow = 1 AND allFollowers = 1) ORDER BY `photo`.`timestamp` DESC"
+        cursor.execute(query, (user_name, user_name, user_name))
+        photo_visible = cursor.fetchall()
+        for i in range(len(photo_visible)):
+            if photo_visible[i]["photoID"] in id_lst:
+                search_result.append(photo_visible[i])
+        cursor.close()
+        if len(search_result) != 0:
+            message = "Here are photos that posted by " + poster_name + " :"
+            return render_template("searchposter.html", message=message, images=search_result)
+        else:
+            message = "There is no photo you can view that posted by " + poster_name + " ."
+            return render_template('home.html', message=message)
+    elif name_valid == False:
+        error = "the user you are searching do not exist!"
+        return render_template('home.html', error=error)
 
 #to display all the close friend group to choose
 @app.route("/closeFriendGroups", methods=["GET"])
@@ -302,7 +523,7 @@ def closeFriendGroups():
     username = session["username"]
     print(username)
     query = "SELECT groupName FROM CloseFriendGroup WHERE CloseFriendGroup.groupOwner = %s"
-    cursor = conn.cursor();
+    cursor = conn.cursor()
     cursor.execute(query,(username))
     conn.commit()
     data = cursor.fetchall()
@@ -388,7 +609,7 @@ def upload_image():
 
                 image_file.save(filepath)
 
-                cursor = conn.cursor();
+                cursor = conn.cursor()
                 query = "INSERT INTO photo VALUES(Null, %s, %s, %s, %s, %s)"
 
                 cursor.execute(query, (username, time.strftime('%Y-%m-%d %H:%M:%S'), image_name, caption, int(allFollowers)))

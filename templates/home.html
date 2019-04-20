@@ -5,6 +5,12 @@
 <li><a href="/upload">Upload an Image</a></li>
 <li><a href="/images">View Images</a></li>
 <li><a href="/closeFriendGroups">Edit CloseFriend Groups</a></li>
+<li><a href="/tagphoto">Tag a photo</a></li>
+<li><a href="/displayTags">Manage your tags</a></li>
+<li><a href="/search">Search a photo</a></li>
+{% if message %}
+    <p class="message"><strong>Message:</strong> {{message}}</p>
+{% endif %}
 {% if error %}
     <p class="error"><strong>Error:</strong> {{error}}</p>
 {% endif %}
@@ -50,7 +56,7 @@ Do you want your photo to be shared with all followers?
 
 		<th>FollowerName</th>
 
-		<th>curren status</th>
+		<th>current status</th>
 
 		<th>Accept or not</th>
 

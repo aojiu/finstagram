@@ -11,6 +11,8 @@
 
 
 <table width="200" border="1" class="table">
+    <th>photoID</th>
+    <th>Owner</th>
 	<th>caption</th>
     <th>timestamp</th>
     <th>tag Accepted</th>
@@ -23,22 +25,24 @@
 {% for image in images %}
 
 	<tr>
-
+        <td>{{image.photoID}}</td>
+        <td>{{image.photoOwner}}</td>
 		<td>{{image.caption}}</td>
         <td>{{image.timestamp}}</td>
         <td>{{image.allFollowers}}</td>
         <td>{{image.filePath}}</td>
 		<td><img src="/image/{{image.filePath}}" width="300"/></td>
-{#        <td>{{images.fname}}</td>#}
-{#		<td>{{images.lname}}</td>#}
-        <td></td>
-		<td></td>
+        <td>{{image.fname}}</td>
+		<td>{{image.lname}}</td>
 	</tr>
 
 {% endfor %}
 
 </table>
+<br>
+<a href="/home">Go back</a>
 
+<a href="/logout">Logout</a>
 
 
 

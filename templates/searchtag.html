@@ -1,0 +1,30 @@
+<html>
+    <head>
+        <title>Finstagram</title>
+    </head>
+    <body>
+{% if message %}
+    <p class="message"><strong>Message:</strong> {{message}}</p>
+{% endif %}
+
+
+<table width="200" border="1" class="table">
+	<th>photoID</th>
+	<th>image</th>
+
+{% for image in images %}
+	<tr>
+		<td>{{image.photoID}}</td>
+		<td><img src="/image/{{image.filePath}}" width="300"/></td>
+	</tr>
+{% endfor %}
+
+</table>
+<br>
+<a href="/home">Go back</a>
+
+<a href="/logout">Logout</a>
+
+
+	</body>
+</html>

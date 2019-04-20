@@ -1,0 +1,31 @@
+<html>
+    <head>
+        <title>Finstagram</title>
+    </head>
+    <body>
+
+Here are your tags
+
+<form action="/acceptTagInfo" method="POST">
+    <table>
+        <th> photoId </th>
+        <th> current status </th>
+        <th> accept or not </th>
+    {% for line in tags %}
+        <tr>
+            <td>{{ line.photoID }}</td>
+            <td>{{ line.acceptedTag }}</td>
+            <td>
+                <input type = "radio" name={{ line.photoID }} value=2> Decline <br>
+                <input type = "radio" name={{ line.photoID }} value=1> Accept <br>
+                <input type = "radio" name={{ line.photoID }} value=0> Ignore <br>
+            </td>
+        </tr>
+    {% endfor %}
+    </table>
+    <input type="submit" value = Submit>
+</form>
+<br>
+<a href="/home">Go back</a>
+
+<a href="/logout">Logout</a>
