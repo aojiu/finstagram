@@ -184,24 +184,13 @@ def share():
 
 
 
-# @app.route('/show_photos', methods=["GET", "POST"])
-# def show_photos():
-#      user_name = session["username"]
-#
-#      query = "SELECT * FROM photo"
-#      cursor = conn.cursor()
-#      cursor.execute(query)
-#      data = cursor.fetchall()
-#      conn.commit()
-#      cursor.close()
-#      return render_template("show_photos.html", images=data)
 
 
 @app.route('/displayTags', methods = ['GET','POST'])
 def display_tags():
     username = session['username']
     cursor = conn.cursor();
-    query = 'SELECT photoID,acceptedTag FROM Tag WHERE acceptedTag = %s AND username = %s'
+    query = 'SELECT photoID,acceptedTag,filePath FROM Tag NATURAL JOIN Photo WHERE acceptedTag = %s AND username = %s'
     cursor.execute(query, ('0', username))
     data = cursor.fetchall()
     #print(data)
@@ -217,29 +206,58 @@ def change_tags():
     cursor.execute(query, (username, '0'))
     photoID_list = cursor.fetchall()
     conn.commit()
-    #print(photoID_list)
+
     for ID in photoID_list:
         curr_id = ID['photoID']
-        answer = request.form[str(curr_id)]
-        #print(type(answer))
-        if int(answer) == 2:
-            # 2 represents decline
-            query1 = "DELETE FROM Tag WHERE Tag.username = %s AND Tag.photoID = %s"
-            cursor.execute(query1, (username, curr_id))
-            conn.commit()
-        elif int(answer) == 1:
-            # 1 represents accept
-            query2 = "UPDATE Tag SET acceptedTag = %s WHERE Tag.username = %s AND Tag.photoID = %s"
-            cursor.execute(query2, (1, username, curr_id))
-            conn.commit()
-        elif int(answer) == 0:
-            # 0 represents ignore
-            query2 = "UPDATE Tag SET acceptedTag = %s WHERE Tag.username = %s AND Tag.photoID = %s"
-            cursor.execute(query2, (2, username, curr_id))
-            # change 2, represents ignored tag
-            conn.commit()
-
-    return render_template('/home.html', message = message)
+        requestID = request.form
+        print(type(curr_id))
+        print(curr_id)
+        if curr_id == int(requestID.keys()[0]):
+            print('diuadwiduwa')
+            answer = request.form[str(curr_id)]
+            if int(answer) == 0:
+                # 0 represents decline
+                query1 = "DELETE FROM Tag WHERE Tag.username = %s AND Tag.photoID = %s"
+                cursor.execute(query1, (username, curr_id))
+                conn.commit()
+            elif int(answer) == 1:
+                # 1 represents accept
+                query2 = "UPDATE Tag SET acceptedTag = %s WHERE Tag.username = %s AND Tag.photoID = %s"
+                cursor.execute(query2, (1, username, curr_id))
+                conn.commit()
+            elif int(answer) == 2:
+                # 2 represents ignore
+                query2 = "UPDATE Tag SET acceptedTag = %s WHERE Tag.username = %s AND Tag.photoID = %s"
+                cursor.execute(query2, (2, username, curr_id))
+                # change 2, represents ignored tag
+                conn.commit()
+    return redirect(url_for('display_tags'))
+        # else:
+        #     return redirect(url_for('display_tags'))
+        # try:
+        #     answer = request.form[str(curr_id)]
+        #     # print(answer)
+        #     if int(answer) == 0:
+        #         # 0 represents decline
+        #         query1 = "DELETE FROM Tag WHERE Tag.username = %s AND Tag.photoID = %s"
+        #         cursor.execute(query1, (username, curr_id))
+        #         conn.commit()
+        #     elif int(answer) == 1:
+        #         # 1 represents accept
+        #         query2 = "UPDATE Tag SET acceptedTag = %s WHERE Tag.username = %s AND Tag.photoID = %s"
+        #         cursor.execute(query2, (1, username, curr_id))
+        #         conn.commit()
+        #     elif int(answer) == 2:
+        #         # 2 represents ignore
+        #         query2 = "UPDATE Tag SET acceptedTag = %s WHERE Tag.username = %s AND Tag.photoID = %s"
+        #         cursor.execute(query2, (2, username, curr_id))
+        #         # change 2, represents ignored tag
+        #         conn.commit()
+        #     else:
+        #         return redirect(url_for('display_tags'))
+        # except:
+        #     return redirect(url_for('display_tags'))
+    # return render_template('view_tags.html', message=message)
 
 
 @app.route('/manage_follows', methods=['GET', 'POST'])
@@ -271,7 +289,7 @@ def manage_been_followed():
     cursor.execute(query, (followeename))
     followerlist = cursor.fetchall()
     conn.commit()
-
+    #print (followerlist)
     for person in followerlist:
         curr_name = person['followerUsername']
         try:
@@ -292,13 +310,43 @@ def manage_been_followed():
     cursor.close()
     return redirect(url_for('home'))
 
+@app.route("/show_like_photo", methods = ['GET','POST'])
+def show_like_photo():
+    username = session["username"]
+    cursor = conn.cursor()
+    query = "SELECT * FROM photo JOIN person ON photo.photoOwner = person.username WHERE photoID NOT IN (SELECT photoID FROM Liked WHERE username = %s) AND (isPrivate = 0 OR username = %s OR username IN (SELECT groupOwner FROM belong NATURAL JOIN closefriendgroup WHERE username = %s UNION SELECT followeeUsername FROM follow WHERE followerUsername = %s AND acceptedfollow = 1 AND allFollowers = 1))"
+    cursor.execute(query, (username, username, username, username))
+    data = cursor.fetchall()
+    conn.commit()
+    cursor.close()
+    return render_template('like.html', ID_library = data)
+
+@app.route("/like_photo", methods = ['GET','POST'])
+def like_photo():
+    message = "You've successfully like the photos"
+    username = session['username']
+    cursor = conn.cursor()
+    query = "SELECT photoID FROM photo JOIN person ON photo.photoOwner = person.username WHERE photoID NOT IN (SELECT photoID FROM Liked WHERE username = %s) AND (isPrivate = 0 OR username = %s OR username IN (SELECT groupOwner FROM belong NATURAL JOIN closefriendgroup WHERE username = %s UNION SELECT followeeUsername FROM follow WHERE followerUsername = %s AND acceptedfollow = 1 AND allFollowers = 1))"
+    cursor.execute(query, (username, username, username, username))
+    id = cursor.fetchall()
+    conn.commit()
+    print(id)
+    photoID = request.form.getlist('id')
+    for i in range(len(photoID)):
+        curr_id = photoID[i]
+        query1 = "INSERT INTO Liked (username, photoID) VALUES (%s, %s)"
+        cursor.execute(query1, (username, int(curr_id)))
+        conn.commit()
+    cursor.close()
+    return redirect(url_for('show_like_photo'))
+
 
 @app.route("/images", methods=["GET"])
 def images():
     user_name = session["username"]
     cursor = conn.cursor()
-    query1 = "SELECT * FROM photo JOIN person ON photo.photoOwner = person.username WHERE" \
-             " isPrivate = 0 OR username = %s OR username IN (SELECT groupOwner FROM belong NATURAL JOIN" \
+    query1 = "SELECT * FROM photo JOIN comment USING(photoID) JOIN person ON photo.photoOwner = person.username WHERE" \
+             " isPrivate = 0 OR person.username = %s OR person.username IN (SELECT groupOwner FROM belong NATURAL JOIN" \
              " closefriendgroup WHERE username = %s UNION SELECT followeeUsername FROM follow WHERE" \
              " followerUsername = %s AND acceptedfollow = 1 AND allFollowers = 1) ORDER BY `photo`.`timestamp` DESC"
     cursor.execute(query1, (user_name, user_name, user_name))
@@ -576,8 +624,46 @@ def addtogroup():
                 return render_template('home.html', message=message)
 
 
-@app.route("/upload", methods=["GET"])
+@app.route("/addcommentpage", methods=["GET","POST"])
+def addcommentpage():
+    photoid = request.form["photoID"]
+    query = "SELECT filePath FROM photo WHERE photoID = %s"
+    cursor = conn.cursor()
+    cursor.execute(query, (photoid))
+    data = cursor.fetchall()
+    conn.commit()
+    print("data")
+    filepath = data[0]["filePath"]
+    # print(photoid)
+    # print(filepath)
+    return render_template('addcommentpage.html', photoId = photoid,filePath = filepath)
 
+@app.route("/addcomment", methods=["GET","POST"])
+def addcomment():
+    username = session["username"]
+    print(username)
+    photoId = request.form["photoId"]
+    comment = request.form["comment"]
+    cursor = conn.cursor()
+    query = "INSERT INTO comment VALUES(%s, %s, %s, %s)"
+
+    cursor.execute(query, (username, photoId, comment, time.strftime('%Y-%m-%d %H:%M:%S')))
+
+    conn.commit()
+    cursor.close()
+    # print(comment)
+    # print(photoId)
+    session['username'] = username
+    message = "successfully add the comment!!!!"
+    return render_template('home.html', message=message)
+
+
+
+
+
+
+
+@app.route("/upload", methods=["GET"])
 def upload():
     return render_template("upload.html")
 
@@ -687,3 +773,7 @@ if __name__ == "__main__":
 
 
 
+# SELECT Liked.photoID, COUNT(Liked.photoID) AS likes FROM Photo LEFT JOIN Liked USING(photoID) JOIN Person ON photo.photoOwner = person.username WHERE
+# isPrivate = 0 OR Liked.username = 'zy123' OR Liked.username IN (SELECT groupOwner FROM belong NATURAL JOIN
+# closefriendgroup WHERE username = 'zy123' UNION SELECT followeeUsername FROM follow WHERE
+# followerUsername = 'zy123' AND acceptedfollow = 1 AND allFollowers = 1) GROUP BY photoID

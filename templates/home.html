@@ -8,6 +8,7 @@
 <li><a href="/tagphoto">Tag a photo</a></li>
 <li><a href="/displayTags">Manage your tags</a></li>
 <li><a href="/search">Search a photo</a></li>
+<li><a href="/show_like_photo">Like photos</a></li>
 {% if message %}
     <p class="message"><strong>Message:</strong> {{message}}</p>
 {% endif %}
@@ -69,10 +70,9 @@ Do you want your photo to be shared with all followers?
 			<td>{{line.acceptedfollow}}</td>
 
 			<td>
+                <a href = "/home"><button type="submit" name={{ line.followerUsername }} value=0> Decline </button></a><br>
 
-				<input type="radio" name={{line.followerUsername}} value=0> Decline <br>
-
-				<input type="radio" name={{line.followerUsername}} value=1> Accept <br>
+                <a href = "/home"><button type="submit" name={{ line.followerUsername }} value=1> Accept </button></a><br>
 
 			</td>
 
@@ -82,8 +82,7 @@ Do you want your photo to be shared with all followers?
 
 	</table>
 
-	<input type="submit" value = Submit>
 
 </form>
 
-
+<a href="/logout">Logout</a>

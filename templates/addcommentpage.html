@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>addcomment</title>
+</head>
+<body>
+<br><img src="/image/{{filePath}}" width="300"/><br>
+Please enter the cooment you want to add to this photo
+
+
+<form action="/addcomment" method="POST">
+
+<input type="text" name="comment" size = "60"><br>
+
+<input type="hidden" value={{ photoId }} name="photoId" />
+
+
+<input type="submit" value="submit">
+
+</form>
+
+
+<br>
+<a href="/home">go back</a>
+<a href="/logout">Logout</a>
+
+</body>
+
+
+</html>
+

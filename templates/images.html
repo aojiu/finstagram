@@ -9,7 +9,7 @@
 
         Here are posts by {{poster_name}}:
 
-
+<form action="/addcommentpage" method="post">
 <table width="200" border="1" class="table">
     <th>photoID</th>
     <th>Owner</th>
@@ -20,20 +20,26 @@
 	<th>image</th>
     <th>FirstNameTagged</th>
 	<th>LastNameTagged</th>
-
+    <th>Comment</th>
+    <th>Add comment</th>
 
 {% for image in images %}
 
 	<tr>
+
         <td>{{image.photoID}}</td>
         <td>{{image.photoOwner}}</td>
 		<td>{{image.caption}}</td>
         <td>{{image.timestamp}}</td>
-        <td>{{image.allFollowers}}</td>
-        <td>{{image.filePath}}</td>
+        <td>{{image.allFollowers}} </td>
+        <td>{{image.filePath}}<input type="hidden" value={{image.filePath}} name="filePath" /></td>
 		<td><img src="/image/{{image.filePath}}" width="300"/></td>
         <td>{{image.fname}}</td>
 		<td>{{image.lname}}</td>
+        <td>{{image.username}} : {{image.commentText}}</td>
+        <input type="hidden" value={{image.filePath}} name="filePath" />
+        <td><button name="photoID" type="submit" value={{image.photoID}}>Add a new comment</button></td>
+
 	</tr>
 
 {% endfor %}

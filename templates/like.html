@@ -1,0 +1,46 @@
+<html>
+    <head>
+        <title>Finstagram</title>
+    </head>
+    <body>
+        <h1>Check the Images You Like</h1>
+
+
+        Here are the photos that you can browse:
+
+<form action="/like_photo" method='POST'>
+<table width="200" border="1" class="table">
+    <th>photoID</th>
+    <th>Owner</th>
+	<th>caption</th>
+    <th>timestamp</th>
+    <th>tag Accepted</th>
+    <th>filepath</th>
+	<th>image</th>
+    <th>Like</th>
+    <th>FirstNameTagged</th>
+	<th>LastNameTagged</th>
+
+{% for image in ID_library %}
+
+	<tr>
+        <td>{{image.photoID}}</td>
+        <td>{{image.photoOwner}}</td>
+		<td>{{image.caption}}</td>
+        <td>{{image.timestamp}}</td>
+        <td>{{image.allFollowers}}</td>
+        <td>{{image.filePath}}</td>
+		<td><img src="/image/{{image.filePath}}" width="300"/></td>
+        <td><input type="checkbox"  name = 'id' value={{ image.photoID }}> </td>
+        <td>{{image.fname}}</td>
+		<td>{{image.lname}}</td>
+	</tr>
+{% endfor %}
+
+</table>
+<input type="submit" value = SubmitMyLike>
+<br>
+
+</form>
+<a href="/home">Go back</a>
+<a href="/logout">Logout</a>

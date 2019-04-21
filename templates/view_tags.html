@@ -3,25 +3,38 @@
         <title>Finstagram</title>
     </head>
     <body>
-
+    
+<style type="text/css">
+	table, th, td{
+		border: 1px solid black;
+	}
+</style>
 Here are your tags
 
 <form action="/acceptTagInfo" method="POST">
     <table>
         <th> photoId </th>
+        <th> image </th>
         <th> current status </th>
         <th> accept or not </th>
-    {% for line in tags %}
-        <tr>
-            <td>{{ line.photoID }}</td>
-            <td>{{ line.acceptedTag }}</td>
-            <td>
-                <input type = "radio" name={{ line.photoID }} value=2> Decline <br>
-                <input type = "radio" name={{ line.photoID }} value=1> Accept <br>
-                <input type = "radio" name={{ line.photoID }} value=0> Ignore <br>
-            </td>
-        </tr>
-    {% endfor %}
+        {% for line in tags %}
+            <tr>
+                <td>{{ line.photoID }}</td>
+                <td><img src="/image/{{line.filePath}}" width="300"/></td>
+                <td>{{ line.acceptedTag }}</td>
+                <td>
+{#                    <input type = "radio" name={{ line.photoID }} value=0> Decline <br>#}
+{#                    <input type = "radio" name={{ line.photoID }} value=1> Accept <br>#}
+{#                    <input type = "radio" name={{ line.photoID }} value=2> Ignore <br>#}
+{#                    <input type = "checkbox" name='photoID[{{ line.photoID }}]' value=0> Decline <br>#}
+{#                    <input type = "checkbox" name='photoID[{{ line.photoID }}]' value=1> Accept <br>#}
+{#                    <input type = "checkbox" name='photoID[{{ line.photoID }}]' value=2> Ignore <br>#}
+                    <a href = "/displayTags"><button type="submit" name={{ line.photoID }} value=0> Decline </button></a><br>
+                    <a href = "/displayTags"><button type="submit" name={{ line.photoID }} value=1> Accept </button></a><br>
+                    <a href = "/displayTags"><button type="submit" name={{ line.photoID }} value=2> Ignore </button></a><br>
+                </td>
+            </tr>
+        {% endfor %}
     </table>
     <input type="submit" value = Submit>
 </form>
@@ -29,3 +42,7 @@ Here are your tags
 <a href="/home">Go back</a>
 
 <a href="/logout">Logout</a>
+
+
+
+
