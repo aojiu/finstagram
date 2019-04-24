@@ -9,6 +9,7 @@
 <li><a href="/displayTags">Manage your tags</a></li>
 <li><a href="/search">Search a photo</a></li>
 <li><a href="/show_like_photo">Like photos</a></li>
+<li><a href="/upload_followrequests">Manage Your Follows</a></li>
 {% if message %}
     <p class="message"><strong>Message:</strong> {{message}}</p>
 {% endif %}
@@ -39,50 +40,5 @@ Do you want your photo to be shared with all followers?
 </style>
 
 
-<form action="/manage_follows" method="POST">
-
-	<input type='text' name = "followeename" placeholder="enter the username" required/> enter the username that you want to follow
-
-	<input type='submit' value= Submit />
-
-</form>
-
-
-
-<form action="/manage_been_followed" method='POST'>
-
-	Here are your follow requests:
-
-	<table>
-
-		<th>FollowerName</th>
-
-		<th>current status</th>
-
-		<th>Accept or not</th>
-
-	{% for line in requests %}
-
-		<tr>
-
-			<td>{{line.followerUsername}}</td>
-
-			<td>{{line.acceptedfollow}}</td>
-
-			<td>
-                <a href = "/home"><button type="submit" name={{ line.followerUsername }} value=0> Decline </button></a><br>
-
-                <a href = "/home"><button type="submit" name={{ line.followerUsername }} value=1> Accept </button></a><br>
-
-			</td>
-
-		</tr>
-
-	{% endfor %}
-
-	</table>
-
-
-</form>
 
 <a href="/logout">Logout</a>

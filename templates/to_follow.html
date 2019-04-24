@@ -1,0 +1,22 @@
+<html>
+    <head>
+        <title>Finstagram</title>
+    </head>
+    <body>
+    <h1>Manage Your Follows</h1>
+
+<style type="text/css">
+	table, th, td{
+		border: 1px solid black;
+	}
+
+</style>
+
+    <form action="/manage_follows" method="POST">
+	<input type='text' name = "followeename" placeholder="enter the username" required/> enter the username that you want to follow
+	<input type='submit' value= Submit />
+    </form>
+
+<a href="/upload_followrequests">Go back</a>
+<br>
+<a href="/logout">Logout</a>

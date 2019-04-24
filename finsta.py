@@ -97,12 +97,12 @@ def registerAuth():
 @app.route('/home')
 def home():
     user = session['username']
-    cursor = conn.cursor();
-    query1 = "SELECT DISTINCT followerUsername,acceptedfollow FROM Follow WHERE followeeUsername = %s AND acceptedfollow = 0"
-    cursor.execute(query1, (user))
-    data = cursor.fetchall()
-    cursor.close()
-    return render_template('home.html',username = user,requests = data)
+    # cursor = conn.cursor();
+    # query1 = "SELECT DISTINCT followerUsername,acceptedfollow FROM Follow WHERE followeeUsername = %s AND acceptedfollow = 0"
+    # cursor.execute(query1, (user))
+    # data = cursor.fetchall()
+    # cursor.close()
+    return render_template('home.html', username=user)
 
 
 
@@ -206,19 +206,10 @@ def change_tags():
     cursor.execute(query, (username, '0'))
     photoID_list = cursor.fetchall()
     conn.commit()
-    # print("photoID is !!!!!!!!!!")
-    # photoId = request.form["photoId"]
-    #
-    # print(photoId)
     for ID in photoID_list:
         curr_id = ID['photoID']
-
         requestID = request.form
-        print(list(requestID.keys()))
-        print(str(curr_id))
-        print(type(list(requestID.keys())))
-        print(type(str(curr_id)))
-        if str(curr_id)== str(list(requestID.keys())[0]):
+        if curr_id == int(list(requestID.keys())[0]):
             answer = request.form[str(curr_id)]
             if int(answer) == 0:
                 # 0 represents decline
@@ -264,6 +255,20 @@ def change_tags():
         #     return redirect(url_for('display_tags'))
     # return render_template('view_tags.html', message=message)
 
+@app.route('/to_follow', methods=['GET','POST'])
+def to_follow():
+    return render_template('to_follow.html')
+
+@app.route('/upload_followrequests', methods = ['GET','POSTS'])
+def upload_follows():
+    username = session['username']
+    cursor = conn.cursor();
+    query = "SELECT DISTINCT followerUsername,acceptedfollow FROM Follow WHERE followeeUsername = %s AND acceptedfollow = 0"
+    cursor.execute(query, username)
+    data = cursor.fetchall()
+    cursor.close()
+    return render_template('manage_follows.html', requests=data)
+
 
 @app.route('/manage_follows', methods=['GET', 'POST'])
 def manage_follows():
@@ -280,7 +285,7 @@ def manage_follows():
         cursor.execute(newQuery, (followername, followeename, 0))
         conn.commit()
         cursor.close()
-        return redirect(url_for('home'))
+        return redirect(url_for('upload_follows'))
     else:
         error = "invalid user to follow"
         return render_template('home.html', error=error)
@@ -294,11 +299,12 @@ def manage_been_followed():
     cursor.execute(query, (followeename))
     followerlist = cursor.fetchall()
     conn.commit()
-    #print (followerlist)
     for person in followerlist:
         curr_name = person['followerUsername']
-        try:
+        curr_library = request.form
+        if curr_name == list(curr_library.keys())[0]:
             answer = request.form[curr_name]
+            # print (answer)
             if int(answer) == 0:
                 query2 = "DELETE FROM Follow WHERE Follow.followerUsername = %s AND Follow.followeeUsername = %s"
                 cursor.execute(query2, (curr_name, followeename))
@@ -308,12 +314,7 @@ def manage_been_followed():
                 query3 = 'UPDATE Follow SET acceptedfollow = %s WHERE Follow.followerUsername = %s AND Follow.followeeUsername = %s'
                 cursor.execute(query3, (1, curr_name, followeename))
                 conn.commit()
-                return redirect(url_for('home'))
-
-        except:
-            return redirect(url_for('home'))
-    cursor.close()
-    return redirect(url_for('home'))
+    return redirect(url_for('upload_follows'))
 
 @app.route("/show_like_photo", methods = ['GET','POST'])
 def show_like_photo():
@@ -328,7 +329,6 @@ def show_like_photo():
 
 @app.route("/like_photo", methods = ['GET','POST'])
 def like_photo():
-    message = "You've successfully like the photos"
     username = session['username']
     cursor = conn.cursor()
     query = "SELECT photoID FROM photo JOIN person ON photo.photoOwner = person.username WHERE photoID NOT IN (SELECT photoID FROM Liked WHERE username = %s) AND (isPrivate = 0 OR username = %s OR username IN (SELECT groupOwner FROM belong NATURAL JOIN closefriendgroup WHERE username = %s UNION SELECT followeeUsername FROM follow WHERE followerUsername = %s AND acceptedfollow = 1 AND allFollowers = 1))"
@@ -344,6 +344,51 @@ def like_photo():
         conn.commit()
     cursor.close()
     return redirect(url_for('show_like_photo'))
+
+@app.route("/show_followees", methods = ["GET","POST"])
+def upload_followeelist():
+    username = session["username"]
+    cursor = conn.cursor()
+    query = "SELECT followeeUsername FROM Follow WHERE followerUsername = %s"
+    cursor.execute(query, username)
+    data = cursor.fetchall()
+    cursor.close()
+    return render_template("followee_list.html", followee_list = data)
+
+@app.route("/manage_unfollows", methods = ["GET","POST"])
+def manage_unfollows():
+    username = session["username"]
+    unfollow_name = request.form["followee_name"]
+    cursor = conn.cursor()
+    query = "DELETE FROM Follow WHERE followerUsername = %s AND followeeUsername = %s"
+    cursor.execute(query, (username, unfollow_name))
+    conn.commit()
+    query1 = "SELECT photoID FROM Photo WHERE photoOwner = %s"
+    cursor.execute(query1, username)
+    follower_photoID = cursor.fetchall()
+    follower_photoID_list = []
+    for elem in follower_photoID:
+        follower_photoID_list.append(elem[list(elem.keys())[0]])
+    print(follower_photoID_list)
+    query2 = "SELECT PhotoID FROM Tag WHERE username = %s AND acceptedTag = 1"
+    cursor.execute(query2, unfollow_name)
+    tag_photoID = cursor.fetchall()
+    tag_photoID_list = []
+    for elem in tag_photoID:
+        tag_photoID_list.append(elem[list(elem.keys())[0]])
+    print(tag_photoID_list)
+    todelete_photoID_list = []
+    for id in tag_photoID_list:
+        if id in follower_photoID_list:
+            todelete_photoID_list.append(id)
+    print(todelete_photoID_list)
+    query3 = "DELETE FROM Tag WHERE username = %s AND photoID = %s"
+    for id in todelete_photoID_list:
+        cursor.execute(query3, (unfollow_name, id))
+        conn.commit()
+    cursor.close()
+    message = "You've successfully unfollowed " + str(unfollow_name) + "and deleted the tags involving your photos"
+    return render_template("manage_follows.html", message=message)
 
 
 @app.route("/images", methods=["GET"])

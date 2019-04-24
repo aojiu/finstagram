@@ -1,0 +1,34 @@
+<html>
+    <head>
+        <title>Finstagram</title>
+    </head>
+    <body>
+    <h1>Here's the people that your are following:</h1>
+
+<style type="text/css">
+	table, th, td{
+		border: 1px solid black;
+	}
+</style>
+
+<form action="/manage_unfollows" method='POST'>
+
+	Check the username that you don't want to follow anymore
+
+	<table>
+		<th>FollowerName</th>
+		<th>Unfollow</th>
+	{% for line in followee_list %}
+		<tr>
+			<td>{{line.followeeUsername}}</td>
+			<td>
+                <a href = "/show_followees"><button type="submit" name="followee_name" value={{ line.followeeUsername }}> Unfollow </button></a><br>
+			</td>
+		</tr>
+	{% endfor %}
+	</table>
+</form>
+
+<a href="/upload_followrequests">Go back</a>
+<br>
+<a href="/logout">Logout</a>

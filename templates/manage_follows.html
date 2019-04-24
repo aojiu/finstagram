@@ -1,0 +1,42 @@
+<html>
+    <head>
+        <title>Finstagram</title>
+    </head>
+    <body>
+    <h1>Manage Your Follows</h1>
+
+<style type="text/css">
+	table, th, td{
+		border: 1px solid black;
+	}
+
+</style>
+
+
+<form action="/manage_been_followed" method='POST'>
+
+	Here are your follow requests:
+
+	<table>
+		<th>FollowerName</th>
+		<th>current status</th>
+		<th>Accept or not</th>
+	{% for line in requests %}
+		<tr>
+			<td>{{line.followerUsername}}</td>
+			<td>{{line.acceptedfollow}}</td>
+			<td>
+                <a href = "/home"><button type="submit" name={{ line.followerUsername }} value=0> Decline </button></a><br>
+                <a href = "/home"><button type="submit" name={{ line.followerUsername }} value=1> Accept </button></a><br>
+			</td>
+		</tr>
+	{% endfor %}
+	</table>
+</form>
+
+<li><a href="/to_follow">To Follow</a></li>
+<li><a href="/show_followees">To Unfollow</a></li>
+
+<a href="/home">Go back</a>
+<br>
+<a href="/logout">Logout</a>
