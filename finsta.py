@@ -206,14 +206,19 @@ def change_tags():
     cursor.execute(query, (username, '0'))
     photoID_list = cursor.fetchall()
     conn.commit()
-
+    # print("photoID is !!!!!!!!!!")
+    # photoId = request.form["photoId"]
+    #
+    # print(photoId)
     for ID in photoID_list:
         curr_id = ID['photoID']
+
         requestID = request.form
-        print(type(curr_id))
-        print(curr_id)
-        if curr_id == int(requestID.keys()[0]):
-            print('diuadwiduwa')
+        print(list(requestID.keys()))
+        print(str(curr_id))
+        print(type(list(requestID.keys())))
+        print(type(str(curr_id)))
+        if str(curr_id)== str(list(requestID.keys())[0]):
             answer = request.form[str(curr_id)]
             if int(answer) == 0:
                 # 0 represents decline
@@ -345,7 +350,7 @@ def like_photo():
 def images():
     user_name = session["username"]
     cursor = conn.cursor()
-    query1 = "SELECT * FROM photo JOIN comment USING(photoID) JOIN person ON photo.photoOwner = person.username WHERE" \
+    query1 = "SELECT * FROM photo JOIN person ON photo.photoOwner = person.username WHERE" \
              " isPrivate = 0 OR person.username = %s OR person.username IN (SELECT groupOwner FROM belong NATURAL JOIN" \
              " closefriendgroup WHERE username = %s UNION SELECT followeeUsername FROM follow WHERE" \
              " followerUsername = %s AND acceptedfollow = 1 AND allFollowers = 1) ORDER BY `photo`.`timestamp` DESC"
@@ -354,21 +359,39 @@ def images():
     for i in range(len(data1)):
         data1[i]["fname"] = ""
         data1[i]["lname"] = ""
+        data1[i]["comment"] = ""
     query2 = "SELECT photoID, fname, lname FROM person JOIN (" \
              "SELECT username, photoID, photoOwner, caption, filepath, timestamp FROM photo NATURAL JOIN" \
              " tag WHERE acceptedTag = 1) t2 ON person.username = t2.username"
+
     cursor.execute(query2)
+
     data2 = cursor.fetchall()
+    query3 = "SELECT photoID, username, commentText from comment"
+    cursor.execute(query3)
+    data3 = cursor.fetchall()
     for i in range(len(data1)):
         for j in range(len(data2)):
             if data1[i]["photoID"] == data2[j]["photoID"]:
                 if data1[i]["fname"] == "":
                     data1[i]["fname"] += data2[j]["fname"]
                     data1[i]["lname"] += data2[j]["lname"]
-                    print(data1[i]["fname"], data1[i]["lname"])
+
                 else:
                     data1[i]["fname"] += ", " + data2[j]["fname"]
                     data1[i]["lname"] += ", " + data2[j]["lname"]
+
+    for i in range(len(data1)):
+        for j in range(len(data3)):
+            if data1[i]["photoID"] == data3[j]["photoID"]:
+                if data1[i]["comment"] == "":
+                    data1[i]["comment"] = data3[j]["username"] + ": " +data3[j]["commentText"] + "\n"
+
+                    print(data1[i]["comment"])
+                else:
+                    data1[i]["comment"] += data3[j]["username"] + ": " +data3[j]["commentText"] + "\n"
+
+                    print(data1[i]["comment"])
     cursor.close()
     return render_template("images.html", poster_name=user_name, images=data1)
 

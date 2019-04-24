@@ -29,6 +29,7 @@ Here are your tags
 {#                    <input type = "checkbox" name='photoID[{{ line.photoID }}]' value=0> Decline <br>#}
 {#                    <input type = "checkbox" name='photoID[{{ line.photoID }}]' value=1> Accept <br>#}
 {#                    <input type = "checkbox" name='photoID[{{ line.photoID }}]' value=2> Ignore <br>#}
+{#                    <input type="hidden" value={{ line.photoId }} name="photoId" />#}
                     <a href = "/displayTags"><button type="submit" name={{ line.photoID }} value=0> Decline </button></a><br>
                     <a href = "/displayTags"><button type="submit" name={{ line.photoID }} value=1> Accept </button></a><br>
                     <a href = "/displayTags"><button type="submit" name={{ line.photoID }} value=2> Ignore </button></a><br>
