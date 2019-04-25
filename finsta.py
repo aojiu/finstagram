@@ -671,6 +671,7 @@ def addtogroup():
     followers = request.form.getlist("followers")
     print(followers)
     print(groupName)
+    error = "you did not select any one!!!!!"
     if followers:
         for follower in followers:
             query_test = "SELECT username FROM Belong WHERE groupName = %s AND username = %s"
@@ -690,6 +691,65 @@ def addtogroup():
                 cursor.close()
                 message = "Successfullly added"
                 return render_template('home.html', message=message)
+    return render_template('home.html', error=error)
+
+@app.route("/friendrec", methods=["GET","POST"])
+def friendrec():
+    username = session["username"]
+
+    query_friend = "SELECT followeeUsername FROM follow WHERE followerUsername = %s"
+    cursor = conn.cursor()
+    cursor.execute(query_friend, (username))
+    data = cursor.fetchall()
+    data2 = []
+    # dict = {}
+    for elem in data:
+        query = "SELECT followeeUsername FROM follow WHERE followerUsername = %s"
+        cursor = conn.cursor()
+        cursor.execute(query_friend, (elem["followeeUsername"]))
+        data3 = cursor.fetchall()
+        print("data3 is!!!!!")
+        print(data3)
+        for elem1 in data3:
+            print("elem1 is !!!!")
+            print(elem1)
+            print("data2 is !!!!")
+            print(data2)
+            if (elem1 not in data2) and (elem1 not in data) and (elem1["followeeUsername"] != username):
+                data2.append(elem1)
+                print("appended")
+                print("appended elem1")
+                print(elem1)
+                print("appended data2")
+                print(data2)
+    # print("data2 is!!!!!!!")
+
+    conn.commit()
+    cursor.close()
+    return render_template('friendrec.html', data2=data2)
+
+
+@app.route("/followrecfriends", methods=["GET","POST"])
+def followrecfriends():
+    username = session["username"]
+    followers = request.form.getlist("friends")
+    print(followers)
+
+    if followers:
+        for follower in followers:
+            query_test = "INSERT INTO follow VALUES (%s, %s, NULL)"
+            cursor = conn.cursor()
+            cursor.execute(query_test, (username, follower))
+            conn.commit()
+            message = "sucessfully followed"
+            return render_template('home.html', message=message)
+    else:
+        error = "you did not select any one"
+        session["username"] = username
+        return render_template('home.html', error = error)
+
+
+
 
 
 @app.route("/addcommentpage", methods=["GET","POST"])

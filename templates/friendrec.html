@@ -1,0 +1,34 @@
+<html>
+<head>
+</head>
+<body>
+
+<h1>Welcome {{username}}</h1>
+This is you friend recommandation.
+Please select people you want to follow.
+
+<br>
+
+<form action="/followrecfriends" method="POST">
+
+
+{% for line in data2 %}
+<input type="radio" name="friends" value={{line.followeeUsername}}>{{line.followeeUsername}}</input>
+
+
+	<br>
+{% endfor %}
+
+<input type="submit" value="submit">
+
+</form>
+
+
+<br>
+<a href="/home">go back</a>
+<a href="/logout">Logout</a>
+
+</body>
+
+
+</html>
