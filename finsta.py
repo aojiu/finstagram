@@ -701,7 +701,7 @@ def friendrec():
                 data2.append(elem1)
     conn.commit()
     cursor.close()
-    return render_template('friendrec.html', data2=data2)
+    return render_template('friendrec.html', data2=data2, username = username)
 
 #send follow request to recommanded people
 @app.route("/followrecfriends", methods=["GET","POST"])
