@@ -1,0 +1,27 @@
+<html>
+    <head>
+        <title>Finstagram</title>
+    </head>
+    <body>
+
+<br>
+{% if username %}
+    <br>Welcome {{ username }} </br>
+{% endif %}
+Add a new close friend group!
+<form action="/addnewgroup" method="POST">
+	<input type="text" name = "groupName" required/>Enter the close friend group you want to add<br>
+<input type="submit" value="search">
+</form>
+
+<br>
+
+</table>
+<br>
+<a href="/home">Go back</a>
+
+<a href="/logout">Logout</a>
+
+
+	</body>
+</html>

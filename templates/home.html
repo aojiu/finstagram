@@ -2,43 +2,31 @@
 <head>
 </head>
 <body>
-<li><a href="/upload">Upload an Image</a></li>
-<li><a href="/images">View Images</a></li>
-<li><a href="/closeFriendGroups">Edit CloseFriend Groups</a></li>
-<li><a href="/tagphoto">Tag a photo</a></li>
-<li><a href="/displayTags">Manage your tags</a></li>
-<li><a href="/search">Search a photo</a></li>
-<li><a href="/show_like_photo">Like photos</a></li>
-<li><a href="/upload_followrequests">Manage Your Follows</a></li>
-<li><a href="/friendrec">friend recommandations</a></li>
 {% if message %}
     <p class="message"><strong>Message:</strong> {{message}}</p>
 {% endif %}
 {% if error %}
     <p class="error"><strong>Error:</strong> {{error}}</p>
 {% endif %}
-<form action="/post" method="POST">
-	<h1>Welcome {{username}}</h1>
-	<input type="text" name = "filepath" placeholder="photo file path" required/> enter the path of the photo</br>
-	<input type="text" name = "caption" placeholder="post" required/> do you want a caption</br>
-
-Do you want your photo to be shared with all followers?
-	<select name = "allFollowers">
-	  <option value=0>No</option>
-	  <option value=1>Yes</option>
-	</select>
 
 
-	<input type="submit" value = Post />
-</form>
 
-{#<a href="/show_photos">View photos</a>#}
+<h1>Welcome {{username}}</h1>
+<li><a href="/upload">Upload an Image</a></li>
+<li><a href="/images">View Images</a></li>
+<li><a href="/closeFriendGroups">Edit CloseFriend Groups</a></li>
+<li><a href="/tagphoto">Tag a Photo</a></li>
+<li><a href="/displayTags">Manage Your Tags</a></li>
+<li><a href="/search">Search a Photo</a></li>
+<li><a href="/show_like_photo">Like Photos</a></li>
+<li><a href="/upload_followrequests">Manage Your Follows</a></li>
+<li><a href="/friendrec">Friend Recommandations</a></li>
+<li><a href="/newgroup">Create a New Close Friend Group</a></li>
 
-<style type="text/css">
-	table, th, td{
-		border: 1px solid black;
-	}
-</style>
+
+
+
+
 
 
 

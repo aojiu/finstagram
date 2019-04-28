@@ -18,7 +18,7 @@ conn = pymysql.connect(host='localhost',
                        port = 8889,
                        user='root',
                        password='root',
-                       db='Project_real',
+                       db='Project_test',
                        charset='utf8mb4',
                        cursorclass=pymysql.cursors.DictCursor)
 
@@ -106,59 +106,6 @@ def home():
 
 
 
-@app.route('/post', methods=['GET', 'POST'])
-def post():
-    username = session['username']
-    cursor = conn.cursor();
-    filepath = request.form["filepath"]
-    allFollowers = request.form['allFollowers']
-    caption = request.form["caption"]
-    timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
-    error = None
-
-    #if the photo is set to be private
-    # Ask users to share
-    if allFollowers == "0":
-        query = 'SELECT groupName FROM CloseFriendGroup WHERE groupOwner = %s'
-        cursor.execute(query, (username))
-        conn.commit()
-        data_group = cursor.fetchall()
-
-        if data_group: #check if the user has at least one closefriend group so he can insert private photo
-            #insert the photo
-            query = 'INSERT INTO photo VALUES(Null, %s, %s, %s, %s, %s)'  # insert the photo into DB
-            cursor.execute(query, (username, timestamp, filepath, caption, int(allFollowers)))
-            conn.commit()
-            #select the photo id just inserted into DB which is not shared
-            query = 'SELECT DISTINCT photoID FROM Photo AS p WHERE p.allFollowers = %s AND p.photoID NOT IN (SELECT photoID from Photo NATURAL JOIN Share WHERE Photo.allFollowers = %s);'
-            cursor.execute(query, (0, 0))
-            data = cursor.fetchall()
-
-            photoId = data[0]["photoID"]
-
-            print(photoId)
-            conn.commit()
-
-            # task xiewy: need to add error here no closefriendgroup
-
-
-            cursor.close()
-            return render_template("sharewith.html", closeFriendsGroup = data_group, photoId = photoId)
-        else:
-            #if the user does not have any closefriend group
-            #bring him to the post page
-            #need at least one closefriend group
-            # returns an error message to the html page
-            session["username"] = username
-            error = 'should have at least one close friends to post a private photo'
-            # return redirect(url_for('home',error = error))
-            return render_template("home.html", username = username, error = error)
-    else:
-        query = 'INSERT INTO photo VALUES(Null, %s, %s, %s, %s, %s)'  # insert the photo into DB
-        cursor.execute(query, (username, timestamp, filepath, caption, int(allFollowers)))
-        conn.commit()
-        cursor.close()
-    return redirect(url_for('home'))
 
 
 
@@ -169,7 +116,8 @@ def share():
     groupName = request.form.getlist("groupName")
     print(photoId)
     if groupName:
-    #Insert into database
+    #for each selected group
+    #share the photo with this group
         for elem in groupName:
             query = 'INSERT INTO Share VALUES (%s, %s, %s) '
             cursor = conn.cursor();
@@ -177,7 +125,7 @@ def share():
             conn.commit()
         cursor.close()
         return redirect(url_for('home'))
-    else:
+    else: #if there is nothing chosen, return to home page
         username = session["username"]
         error = "You did not select any of the closefriendgroup!!!!!!!!!!!!!"
         return render_template("home.html", username=username, error=error)
@@ -193,7 +141,6 @@ def display_tags():
     query = 'SELECT photoID,acceptedTag,filePath FROM Tag NATURAL JOIN Photo WHERE acceptedTag = %s AND username = %s'
     cursor.execute(query, ('0', username))
     data = cursor.fetchall()
-    #print(data)
     conn.commit()
     return render_template('view_tags.html', tags=data)
 
@@ -228,32 +175,7 @@ def change_tags():
                 # change 2, represents ignored tag
                 conn.commit()
     return redirect(url_for('display_tags'))
-        # else:
-        #     return redirect(url_for('display_tags'))
-        # try:
-        #     answer = request.form[str(curr_id)]
-        #     # print(answer)
-        #     if int(answer) == 0:
-        #         # 0 represents decline
-        #         query1 = "DELETE FROM Tag WHERE Tag.username = %s AND Tag.photoID = %s"
-        #         cursor.execute(query1, (username, curr_id))
-        #         conn.commit()
-        #     elif int(answer) == 1:
-        #         # 1 represents accept
-        #         query2 = "UPDATE Tag SET acceptedTag = %s WHERE Tag.username = %s AND Tag.photoID = %s"
-        #         cursor.execute(query2, (1, username, curr_id))
-        #         conn.commit()
-        #     elif int(answer) == 2:
-        #         # 2 represents ignore
-        #         query2 = "UPDATE Tag SET acceptedTag = %s WHERE Tag.username = %s AND Tag.photoID = %s"
-        #         cursor.execute(query2, (2, username, curr_id))
-        #         # change 2, represents ignored tag
-        #         conn.commit()
-        #     else:
-        #         return redirect(url_for('display_tags'))
-        # except:
-        #     return redirect(url_for('display_tags'))
-    # return render_template('view_tags.html', message=message)
+
 
 @app.route('/to_follow', methods=['GET','POST'])
 def to_follow():
@@ -395,48 +317,50 @@ def manage_unfollows():
 def images():
     user_name = session["username"]
     cursor = conn.cursor()
+    # query that find all information about photos that are visible to the user
     query1 = "SELECT * FROM photo JOIN person ON photo.photoOwner = person.username WHERE" \
              " isPrivate = 0 OR person.username = %s OR person.username IN (SELECT groupOwner FROM belong NATURAL JOIN" \
              " closefriendgroup WHERE username = %s UNION SELECT followeeUsername FROM follow WHERE" \
              " followerUsername = %s AND acceptedfollow = 1 AND allFollowers = 1) ORDER BY `photo`.`timestamp` DESC"
     cursor.execute(query1, (user_name, user_name, user_name))
     data1 = cursor.fetchall()
+    # add three new key to the dictionary
     for i in range(len(data1)):
         data1[i]["fname"] = ""
         data1[i]["lname"] = ""
         data1[i]["comment"] = ""
+    # query that find the tagged photoID and names that user can see
     query2 = "SELECT photoID, fname, lname FROM person JOIN (" \
              "SELECT username, photoID, photoOwner, caption, filepath, timestamp FROM photo NATURAL JOIN" \
              " tag WHERE acceptedTag = 1) t2 ON person.username = t2.username"
-
     cursor.execute(query2)
-
     data2 = cursor.fetchall()
+    # query that find the photoID, username, and comment
     query3 = "SELECT photoID, username, commentText from comment"
     cursor.execute(query3)
     data3 = cursor.fetchall()
+
+    # a nest loop to insert tagged name into the visible photo information
     for i in range(len(data1)):
         for j in range(len(data2)):
+            # only insert into the dictionary if photoID matches
             if data1[i]["photoID"] == data2[j]["photoID"]:
+                # if the key is empty
                 if data1[i]["fname"] == "":
                     data1[i]["fname"] += data2[j]["fname"]
                     data1[i]["lname"] += data2[j]["lname"]
-
                 else:
                     data1[i]["fname"] += ", " + data2[j]["fname"]
                     data1[i]["lname"] += ", " + data2[j]["lname"]
-
+    # a nest loop to insert comment into the visible photo information
     for i in range(len(data1)):
         for j in range(len(data3)):
+            # only insert into the dictionary if photoID matches
             if data1[i]["photoID"] == data3[j]["photoID"]:
                 if data1[i]["comment"] == "":
                     data1[i]["comment"] = data3[j]["username"] + ": " +data3[j]["commentText"] + "\n"
-
-                    print(data1[i]["comment"])
                 else:
                     data1[i]["comment"] += data3[j]["username"] + ": " +data3[j]["commentText"] + "\n"
-
-                    print(data1[i]["comment"])
     cursor.close()
     return render_template("images.html", poster_name=user_name, images=data1)
 
@@ -450,6 +374,7 @@ def image(image_name):
 def tagphoto():
     user_name = session["username"]
     cursor = conn.cursor()
+    # query that find all information about photos that are visible to the user
     query = "SELECT photoID, filePath FROM photo JOIN person ON photo.photoOwner = person.username " \
             "WHERE isPrivate = 0 OR username = %s OR username IN (SELECT groupOwner FROM belong NATURAL JOIN" \
             " closefriendgroup WHERE username = %s UNION SELECT followeeUsername FROM follow WHERE" \
@@ -483,10 +408,10 @@ def tagrequest():
     id_lst = []
     # only insert if id and name are valid
     if photo_valid and name_valid:
-        query = "SELECT username FROM tag WHERE photoID = %s"
+        query = "SELECT username, photoID FROM tag WHERE photoID = %s"
         cursor.execute(query, (photo_id))
         names = cursor.fetchall()
-
+        # query that find all information about photos that are visible to the user
         query = "SELECT photoID FROM photo JOIN person ON photo.photoOwner = person.username WHERE" \
                 " isPrivate = 0 OR username = %s OR username IN (SELECT groupOwner FROM belong NATURAL JOIN " \
                 "closefriendgroup WHERE username = %s UNION SELECT followeeUsername FROM follow WHERE" \
@@ -495,45 +420,57 @@ def tagrequest():
         photo_visible = cursor.fetchall()
         for i in range(len(photo_visible)):
             id_lst.append(photo_visible[i]["photoID"])
+        # if the photoID user want to tag is not visible to the user, then print an error
         if int(photo_id) not in id_lst:
             cursor.close()
             error = "the user you are tagging cannot view this photo!"
             return render_template('home.html', error=error)
-
+        # if the tag table is empty
         if len(names) == 0:
+            # if the user is tagging himself, then just insert into tag table with acceptTag = 1
             if user_name == tag_name:
                 query = "INSERT INTO tag VALUES (%s, %s, '1');"
                 cursor.execute(query, (user_name, photo_id))
                 conn.commit()
                 cursor.close()
+                # print a message to tell user that he has tagged the person
                 message = "you have tagged " + tag_name + " on the photo"
                 return render_template('home.html', message=message)
             else:
+                # if the user is tagging other people, then insert into tag table with acceptTag = 0
                 query = "INSERT INTO tag VALUES (%s, %s, '0');"
                 cursor.execute(query, (tag_name, photo_id))
                 conn.commit()
                 cursor.close()
+                # print a message to tell user that he has tagged the person
                 message = "you have tagged " + tag_name + " on the photo"
                 return render_template('home.html', message=message)
         else:
+            # if the tag table is not empty
             for i in range(len(names)):
-                if tag_name == names[i]:
+                # if the name that user want to tag already been tagged on that photo
+                if tag_name == names[i]["username"] and photo_id == names[i]["photoID"]:
                     cursor.close()
+                    # print an error message to the user
                     error = "the user you are tagging has already been tagged in this photo!"
                     return render_template('home.html', error=error)
                 else:
+                    # if the user is tagging himself, then just insert into tag table with acceptTag = 1
                     if user_name == tag_name:
                         query = "INSERT INTO tag VALUES (%s, %s, '1');"
                         cursor.execute(query, (user_name, photo_id))
                         conn.commit()
                         cursor.close()
+                        # print a message to tell user that he has tagged the person
                         message = "you have tagged " + tag_name + " on the photo"
                         return render_template('home.html', message=message)
                     else:
+                        # if the user is tagging other people, then insert into tag table with acceptTag = 0
                         query = "INSERT INTO tag VALUES (%s, %s, '0');"
                         cursor.execute(query, (tag_name, photo_id))
                         conn.commit()
                         cursor.close()
+                        # print a message to tell user that he has tagged the person
                         message = "you have tagged " + tag_name + " on the photo"
                         return render_template('home.html', message=message)
     elif name_valid == False:
@@ -553,7 +490,7 @@ def search():
 def searchtag():
     user_name = session["username"]
     tag_name = request.form["name"]
-
+    # check if the name that user want to search is valid or not
     name_valid = False
     cursor = conn.cursor()
     cursor.execute("SELECT username FROM person")
@@ -565,25 +502,31 @@ def searchtag():
     id_lst = []
     search_result = []
     if name_valid:
+        # find all the photoID that has been tagged with the name that user is searching
+        # and the person accept the tag
         query = "SELECT photoID FROM tag WHERE username = %s AND acceptedTag = 1"
         cursor.execute(query, (tag_name))
         photo_tagged = cursor.fetchall()
         for i in range(len(photo_tagged)):
                 id_lst.append(photo_tagged[i]["photoID"])
-
+        # query that find all information about photos that are visible to the user
         query = "SELECT * FROM photo JOIN person ON photo.photoOwner = person.username WHERE" \
                 " isPrivate = 0 OR username = %s OR username IN (SELECT groupOwner FROM belong NATURAL JOIN " \
                 "closefriendgroup WHERE username = %s UNION SELECT followeeUsername FROM follow WHERE" \
                 " followerUsername = %s AND acceptedfollow = 1 AND allFollowers = 1) ORDER BY `photo`.`timestamp` DESC"
         cursor.execute(query, (user_name, user_name, user_name))
         photo_visible = cursor.fetchall()
+        # if the photoID user can see matches the photoID that has tagged the name that user is searching,
+        # then append in the list
         for i in range(len(photo_visible)):
             if photo_visible[i]["photoID"] in id_lst:
                 search_result.append(photo_visible[i])
         cursor.close()
+        # if the result list is not empty, then print out photos
         if len(search_result) != 0:
             message = "Here are photos that have " + tag_name + " tagged on it."
             return render_template("searchtag.html", message=message, images=search_result)
+        # if the result list is empty, then print out a message to the user
         else:
             message = "There is no photo you can view that have " + tag_name + " tagged on it."
             return render_template('home.html', message=message)
@@ -607,25 +550,30 @@ def searchposter():
     id_lst = []
     search_result = []
     if name_valid:
+        # find all the photoID that been post by the name that user is searching
         query = "SELECT photoID FROM photo WHERE PhotoOwner= %s"
         cursor.execute(query, (poster_name))
         photo_post = cursor.fetchall()
         for i in range(len(photo_post)):
                 id_lst.append(photo_post[i]["photoID"])
-
+        # query that find all information about photos that are visible to the user
         query = "SELECT * FROM photo JOIN person ON photo.photoOwner = person.username WHERE" \
                 " isPrivate = 0 OR username = %s OR username IN (SELECT groupOwner FROM belong NATURAL JOIN " \
                 "closefriendgroup WHERE username = %s UNION SELECT followeeUsername FROM follow WHERE" \
                 " followerUsername = %s AND acceptedfollow = 1 AND allFollowers = 1) ORDER BY `photo`.`timestamp` DESC"
         cursor.execute(query, (user_name, user_name, user_name))
         photo_visible = cursor.fetchall()
+        # if the photoID user can see matches the photoID that are post by the name that user is searching,
+        # then append in the list
         for i in range(len(photo_visible)):
             if photo_visible[i]["photoID"] in id_lst:
                 search_result.append(photo_visible[i])
         cursor.close()
+        # if the result list is not empty, then print out photos
         if len(search_result) != 0:
             message = "Here are photos that posted by " + poster_name + " :"
             return render_template("searchposter.html", message=message, images=search_result)
+        # if the result list is empty, then print out a message to the user
         else:
             message = "There is no photo you can view that posted by " + poster_name + " ."
             return render_template('home.html', message=message)
@@ -637,7 +585,6 @@ def searchposter():
 @app.route("/closeFriendGroups", methods=["GET"])
 def closeFriendGroups():
     username = session["username"]
-    print(username)
     query = "SELECT groupName FROM CloseFriendGroup WHERE CloseFriendGroup.groupOwner = %s"
     cursor = conn.cursor()
     cursor.execute(query,(username))
@@ -646,6 +593,10 @@ def closeFriendGroups():
     print(data)
     cursor.close()
     return render_template("closefriendgroups.html", poster_name=username, closefriendgroups=data)
+
+
+
+
 
 
 #show all the followers that can be added into the close friend group
@@ -674,16 +625,19 @@ def addtogroup():
     error = "you did not select any one!!!!!"
     if followers:
         for follower in followers:
+            #for each follower, see if he/she is in the closefriendgroup or not
             query_test = "SELECT username FROM Belong WHERE groupName = %s AND username = %s"
             cursor = conn.cursor()
             cursor.execute(query_test, (groupName, follower))
             data = cursor.fetchall()
             conn.commit()
             if data:
+                #if data exists, the follower is already in the group
                 session["username"] = username
                 error = "The follower you selected is already in this close friend!!!!!!"
                 return render_template('home.html', error=error)
             else:
+                #no data, insert the follower into the selected group
                 query_add = "INSERT INTO Belong VALUES (%s, %s, %s)"
                 cursor = conn.cursor()
                 cursor.execute(query_add, (groupName, username, follower))
@@ -693,42 +647,63 @@ def addtogroup():
                 return render_template('home.html', message=message)
     return render_template('home.html', error=error)
 
+
+
+@app.route("/newgroup", methods=["GET","POST"])
+def newGroup():
+    username = session["username"]
+    return render_template("newgroup.html", username = username)
+
+@app.route("/addnewgroup", methods=["GET","POST"])
+def addnewgroup():
+    message = "Successfully add the close friend group"
+    username = session["username"]
+    groupName = request.form["groupName"]
+    cursor = conn.cursor()
+    query_sel = "SELECT * FROM CloseFriendGroup WHERE groupName = %s AND groupOwner = %s"
+    cursor.execute(query_sel, (groupName, username))
+    data = cursor.fetchall()
+    if data:
+        #test whether the close friend group already exists
+        error = "The close friend group already exists!!!!!"
+        session["username"] = username
+        cursor.close()
+        return render_template('home.html', error = error, username = username)
+    else:
+        #if not exists we should insert the new group into the database
+        query = "INSERT INTO CloseFriendGroup VALUES(%s, %s)"
+        cursor.execute(query, (groupName, username))
+        session["username"] = username
+        conn.commit()
+        cursor.close()
+    return render_template('home.html', message = message, username = username)
+
+
+
 @app.route("/friendrec", methods=["GET","POST"])
 def friendrec():
     username = session["username"]
-
+    #select all friends of the current user
     query_friend = "SELECT followeeUsername FROM follow WHERE followerUsername = %s"
     cursor = conn.cursor()
     cursor.execute(query_friend, (username))
     data = cursor.fetchall()
     data2 = []
-    # dict = {}
     for elem in data:
+        #select people followed by the friends of the current user
         query = "SELECT followeeUsername FROM follow WHERE followerUsername = %s"
         cursor = conn.cursor()
-        cursor.execute(query_friend, (elem["followeeUsername"]))
+        cursor.execute(query, (elem["followeeUsername"]))
         data3 = cursor.fetchall()
-        print("data3 is!!!!!")
-        print(data3)
         for elem1 in data3:
-            print("elem1 is !!!!")
-            print(elem1)
-            print("data2 is !!!!")
-            print(data2)
+            #if the user is not the friend of the user, and get rid of redundancy
             if (elem1 not in data2) and (elem1 not in data) and (elem1["followeeUsername"] != username):
                 data2.append(elem1)
-                print("appended")
-                print("appended elem1")
-                print(elem1)
-                print("appended data2")
-                print(data2)
-    # print("data2 is!!!!!!!")
-
     conn.commit()
     cursor.close()
     return render_template('friendrec.html', data2=data2)
 
-
+#send follow request to recommanded people
 @app.route("/followrecfriends", methods=["GET","POST"])
 def followrecfriends():
     username = session["username"]
@@ -742,6 +717,7 @@ def followrecfriends():
             cursor.execute(query_test, (username, follower))
             conn.commit()
             message = "sucessfully followed"
+            cursor.close()
             return render_template('home.html', message=message)
     else:
         error = "you did not select any one"
@@ -755,21 +731,20 @@ def followrecfriends():
 @app.route("/addcommentpage", methods=["GET","POST"])
 def addcommentpage():
     photoid = request.form["photoID"]
+    #keep track of the information of the photo to display it
     query = "SELECT filePath FROM photo WHERE photoID = %s"
     cursor = conn.cursor()
     cursor.execute(query, (photoid))
     data = cursor.fetchall()
     conn.commit()
-    print("data")
     filepath = data[0]["filePath"]
-    # print(photoid)
-    # print(filepath)
+    cursor.close()
     return render_template('addcommentpage.html', photoId = photoid,filePath = filepath)
 
+#get all the information from html and then insert the comment to the database
 @app.route("/addcomment", methods=["GET","POST"])
 def addcomment():
     username = session["username"]
-    print(username)
     photoId = request.form["photoId"]
     comment = request.form["comment"]
     cursor = conn.cursor()
@@ -779,10 +754,9 @@ def addcomment():
 
     conn.commit()
     cursor.close()
-    # print(comment)
-    # print(photoId)
     session['username'] = username
     message = "successfully add the comment!!!!"
+    cursor.close()
     return render_template('home.html', message=message)
 
 
